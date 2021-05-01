@@ -28,6 +28,13 @@
 #include <new>
 
 
+#define TREE_CHECK if (Check ())                        \
+                   {                                    \
+                     Dump(DUMP_NAME);                   \
+                     TREE_ASSERTOK(errCode_, errCode_); \
+                   }
+
+
 #define TREE_ASSERTOK(cond, err) if (cond)                                                                 \
                                  {                                                                         \
                                    TreePrintError (TREE_LOGNAME , __FILE__, __LINE__, __FUNC_NAME__, err); \
@@ -60,6 +67,12 @@ struct Node
     bool is_dynamic_ = false;
 
 //------------------------------------------------------------------------------
+/*! @brief   Tree default constructor.
+*/
+
+    Node ();
+
+//------------------------------------------------------------------------------
 /*! @brief   Create a tree from the base text.
  *
  *  @param   base        Base text
@@ -77,12 +90,22 @@ struct Node
     void destruct ();
 
 //------------------------------------------------------------------------------
+/*! @brief   Node copy constructor (deleted).
+ *
+ *  @param   obj         Source node
+ */
+
+    Node (const Node& obj);
+
+    Node& operator = (const Node& obj); // deleted
+
+//------------------------------------------------------------------------------
 /*! @brief   Recursive tree writing to file.
  *
  *  @param   base        Base file
  */
 
-    void write (FILE* base);
+    void Write (FILE* base);
 
 //------------------------------------------------------------------------------
 /*! @brief   Recursive depth recount.
@@ -100,6 +123,30 @@ struct Node
  */
 
     int findPath (Stack<size_t>& path, TYPE elem);
+
+//------------------------------------------------------------------------------
+/*! @brief   Node deep copy constructor.
+ *
+ *  @param   obj         Source node
+ */
+
+    void dCopy (const Node& obj);
+
+//------------------------------------------------------------------------------
+/*! @brief   Recursive node checker.
+ *
+ *  @return  error code
+ */
+
+    int Check ();
+
+//------------------------------------------------------------------------------
+/*! @brief   Recursive print the contents of the tree like a graphviz dot file.
+ *
+ *  @param   dump        Dump graphviz dot file
+ */
+
+    void Dump (FILE* dump);
 
 //------------------------------------------------------------------------------
 };
@@ -172,25 +219,20 @@ struct Tree
     void dCopy (const Tree& obj);
 
 //------------------------------------------------------------------------------
-/*! @brief   Print the contents of the tree and its data to the logfile.
+/*! @brief   Print the contents of the tree like a graphviz dot file.
  *
- *  @param   funcname    Name of the function from which the dump was called
- *  @param   logname     Name of the logfile
- *
- *  @return  error code
+ *  @param   dumpname    Name of the dump file
  */
 
-    int Dump (const char* funcname = nullptr, const char* logfile = TREE_LOGNAME);
+    void Dump (const char* dumpname = DUMP_NAME);
 
 //------------------------------------------------------------------------------
 /*! @brief   Write the tree data to the base file.
  *
  *  @param   basename    Base file name
- *
- *  @return  error code
  */
 
-    int write (const char* basename = DEFAULT_BASE_NAME);
+    void Write (const char* basename = DEFAULT_BASE_NAME);
 
 //------------------------------------------------------------------------------
 /*! @brief   Find path in the tree to the element.
@@ -203,11 +245,13 @@ struct Tree
 
     int findPath (Stack<size_t>& path, TYPE elem);
 
-/*------------------------------------------------------------------------------
-                   Private functions                                           *
-*///----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+/*! @brief   Check tree for problems.
+ *
+ *  @return  error code
+ */
 
-private:
+    int Check ();
 
 //------------------------------------------------------------------------------
 };

@@ -13,24 +13,28 @@
 //------------------------------------------------------------------------------
 
 Akinator::Akinator () :
-    tree_  ((char*)"Akinator tree", (char*)DEFAULT_BASE_NAME),
+    tree_  ((char*)"default", (char*)DEFAULT_BASE_NAME),
     state_ (AKN_OK)
-{ }
+{
+    BASE_CHECK;
+}
 
 //------------------------------------------------------------------------------
 
 Akinator::Akinator (char* filename) :
-    tree_     ((char*)"Akinator tree", filename),
+    tree_     (filename, filename),
     filename_ (filename),
     state_    (AKN_OK)
-{ }
+{
+    BASE_CHECK;
+}
 
 //------------------------------------------------------------------------------
 
 Akinator::~Akinator ()
 {
-    AKN_ASSERTOK((this == nullptr),           AKN_NULL_INPUT_AKINATOR_PTR);
-    AKN_ASSERTOK((state_ == AKN_DESTRUCTED),  AKN_DESTRUCTED             );
+    AKN_ASSERTOK((this == nullptr),          AKN_NULL_INPUT_AKINATOR_PTR);
+    AKN_ASSERTOK((state_ == AKN_DESTRUCTED), AKN_DESTRUCTED             );
 
     filename_ = nullptr;
 
@@ -43,22 +47,26 @@ Akinator::~Akinator ()
 
 int Akinator::Run ()
 {
-    //checkBase();
     AKN_ASSERTOK((this == nullptr), AKN_NULL_INPUT_AKINATOR_PTR);
+
+    tree_.Dump();
 
     printf("\n$$$ Akinator game (c) Artem Puzankov, 2021 $$$\n");
 
     bool running = true;
     while (running)
     {
+        BASE_CHECK;
+    
         printf("\nChoose a gamemode please:\n");
         printf("\t[1]: Guessing a character\n");
         printf("\t[2]: Find a character\n");
         printf("\t[3]: Character comparison\n");
-        printf("\t[4]: Exit\n");
+        printf("\t[4]: View the base\n");
+        printf("\t[5]: Exit\n");
         printf("Enter a number: ");
 
-        int mode = scanNum(1, 4);
+        int mode = scanNum(1, 5);
 
         switch (mode)
         {
@@ -72,6 +80,9 @@ int Akinator::Run ()
             CharCmp();
             break;
         case 4:
+            printGraphBase();
+            break;
+        case 5:
             running = false;
             break;
         default:
@@ -96,7 +107,7 @@ int Akinator::Guessing ()
         if (node_cur->data_[0] == '?')
             strcpy(question, node_cur->data_ + 1);
 
-        else if (node_cur->data_[0] == '\"')
+        else if (node_cur->data_[0] == '\'')
         {
             strcpy(question, node_cur->data_ + 1);
             question[strlen(question) - 1] = '?';
@@ -140,7 +151,7 @@ int Akinator::Guessing ()
 int Akinator::CharFind ()
 {
     printf("Введите персонажа, о котором хотите узнать: ");
-    char* charname = scanChar();
+    char* charname = scanChar('\'');
 
     newStack(path, size_t);
     bool found = tree_.findPath(path, charname);
@@ -156,8 +167,8 @@ int Akinator::CharFind ()
     for (int i = 0; i < path.getSize() - 1; ++i)
         printFeature(path, i);
 
-    printf("\n");
-
+    printf(".\n");
+    
     return AKN_OK;
 }
 
@@ -166,7 +177,7 @@ int Akinator::CharFind ()
 int Akinator::CharCmp ()
 {
     printf("Введите первого персонажа, которого хотите сравнить: ");
-    char* char1 = scanChar();
+    char* char1 = scanChar('\'');
 
     newStack(path1, size_t);
     bool found = tree_.findPath(path1, char1);
@@ -177,7 +188,7 @@ int Akinator::CharCmp ()
     }
 
     printf("Введите второго персонажа, которого хотите сравнить: ");
-    char* char2 = scanChar();
+    char* char2 = scanChar('\'');
 
     newStack(path2, size_t);
     found = tree_.findPath(path2, char2);
@@ -209,15 +220,13 @@ int Akinator::CharCmp ()
     for (; i1 < path1.getSize() - 1; ++i1)
         printFeature(path1, i1);
 
-    printf("\n");
+    printf(",\n");
 
-    printf("А %s\b отличается тем, что ", char2 + 1);
+    printf("a %s\b отличается тем, что ", char2 + 1);
     for (; i2 < path2.getSize() - 1; ++i2)
         printFeature(path2, i2);
 
-    printf("\n");
-
-    printf("\nВот все сходства и различия объектов %s\b и %s\b \n", char1 + 1, char2 + 1);
+    printf(".\n");
 
     delete [] char1;
     delete [] char2;
@@ -269,13 +278,15 @@ bool Akinator::scanAns ()
 
 //------------------------------------------------------------------------------
 
-char* Akinator::scanChar ()
+char* Akinator::scanChar (char c)
 {
-    char* charname = new char [MAX_STR_LEN];
+    char* charname = new char [MAX_STR_LEN] {};
+    charname[0] = c;
+
     for (char* err = fgets(charname + 1, MAX_STR_LEN - 2, stdin); !err; printf("Try again [Y/n]? "));
     size_t len = strlen(charname);
-    charname[0] = '\"';
-    charname[len - 1] = '\"';
+    assert(len);
+    charname[len - 1] = c;
 
     return charname;
 }
@@ -285,12 +296,12 @@ char* Akinator::scanChar ()
 inline void Akinator::printFeature (const Stack<size_t>& path, size_t item)
 {
     if (((Node<char*>*)path[item])->left_ == (Node<char*>*)path[item + 1])
-        printf("не ");
+        txSpeak("\vне ");
     else if (((Node<char*>*)path[item])->right_ != (Node<char*>*)path[item + 1])
         assert(0);
 
-    printf("%s\b.", ((Node<char*>*)path[item])->data_ + 1);
-    if (item != path.getSize() - 2) printf("\b, ");
+    txSpeak("\v%s\b", ((Node<char*>*)path[item])->data_ + 1);
+    if (item != path.getSize() - 2) printf(", ");
 }
 
 //------------------------------------------------------------------------------
@@ -300,20 +311,20 @@ int Akinator::addAns (Node<char*>* node_cur)
     assert(node_cur != nullptr);
 
     printf("Введите вашего персонажа: ");
-    char* newchar = scanChar();
+    char* newchar = scanChar('\'');
 
     char oldchar[MAX_STR_LEN] = "";
     strcpy(oldchar, node_cur->data_ + 1);
     oldchar[strlen(oldchar) - 1] = '\0';
 
     printf("Введите признак отличающий %s от %s: ", newchar, oldchar);
-    char* feature = new char [MAX_STR_LEN];
-    char* err = scanChar();
+    char* feature = scanChar('?');
 
     Node<char*>* prevNode = node_cur->prev_;
 
     Node<char*>* featureNode = new Node<char*>;
     featureNode->prev_ = prevNode;
+
     featureNode->data_ = feature;
     featureNode->is_dynamic_ = true;
 
@@ -341,13 +352,70 @@ int Akinator::addAns (Node<char*>* node_cur)
     printf("Answer [Y/n]? ");
     if (scanAns())
     {
-        tree_.write(filename_);
+        tree_.Write(filename_);
     }
 
-    delete [] newchar;
-    delete [] feature;
+    return AKN_OK;
+}
+
+//------------------------------------------------------------------------------
+
+int Akinator::checkBase (Node<char*>* node_cur)
+{
+    assert(node_cur != nullptr);
+    
 
     return AKN_OK;
+}
+
+//------------------------------------------------------------------------------
+
+void Akinator::printGraphBase (const char* graphname)
+{
+    FILE* graph = fopen(graphname, "w");
+    assert(graph != nullptr);
+
+    fprintf(graph, "digraph G{\n" "rankdir = HR;\n node[shape=box];\n");
+
+    printGraphNode(graph, tree_.root_);
+
+    fprintf(graph, "\tlabelloc=\"t\";"
+                  "\tlabel=\"Akinator base: %s\";"
+                  "}\n", tree_.name_);
+
+    fclose(graph);
+
+    char command[128] = "";
+
+    sprintf(command, "win_iconv -f 1251 -t UTF8 \"%s\" > \"new%s\"", graphname, graphname);
+    system(command);
+
+    sprintf(command, "dot -Tpng -o BaseGraph.png new%s", graphname);
+    system(command);
+
+    system("start BaseGraph.png");
+}
+
+//------------------------------------------------------------------------------
+
+void Akinator::printGraphNode (FILE* graph, Node<char*>* node_cur)
+{
+    assert(graph != nullptr);
+
+    if (node_cur->right_ == nullptr && node_cur->left_ == nullptr)
+        fprintf(graph, "\t \"%s\" [shape = box, style = filled, color = black, fillcolor = orange]\n", node_cur->data_);
+    else
+        fprintf(graph, "\t \"%s\" [shape = box, style = filled, color = black, fillcolor = lightskyblue]\n", node_cur->data_);
+
+    if (node_cur->left_ != nullptr)
+        fprintf(graph, "\t \"%s\" -> \"%s\" [label=\"No\"]\n", node_cur->data_, node_cur->left_->data_);
+
+    if (node_cur->right_ != nullptr)
+        fprintf(graph, "\t \"%s\" -> \"%s\" [label=\"Yes\"]\n", node_cur->data_, node_cur->right_->data_);
+
+
+    if (node_cur->left_  != nullptr) printGraphNode(graph, node_cur->left_);
+    if (node_cur->right_ != nullptr) printGraphNode(graph, node_cur->right_);
 }
 
 //------------------------------------------------------------------------------

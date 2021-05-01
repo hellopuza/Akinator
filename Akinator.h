@@ -14,6 +14,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 //#define NDEBUG
 
+//#define TX_USE_SPEAK
+#include "C:\Users\admin\Documents\.Programming\C\TX\TXLib.h"
 
 #if defined (__GNUC__) || defined (__clang__) || defined (__clang_major__)
     #define __FUNC_NAME__   __PRETTY_FUNCTION__
@@ -25,6 +27,7 @@
     #define __FUNC_NAME__   __FUNCTION__
 
 #endif
+
 
 
 #include "StringLib/StringLib.h"
@@ -67,12 +70,22 @@ static const char* akn_errstr[] =
     "The input value of the Akinator filename turned out to be zero"   ,
 };
 
-static const char* AKINATOR_LOGNAME = "Akinator.log";
+static const char* AKINATOR_LOGNAME = "akinator.log";
+
+#define BASE_CHECK if (tree_.Check ())                              \
+                   {                                                \
+                     tree_.Dump();                                  \
+                     TREE_ASSERTOK(tree_.errCode_, tree_.errCode_); \
+                   }                                                \
+                   if (checkBase (tree_.root_))                     \
+                   {                                                \
+                     AKN_ASSERTOK(state_, state_);                  \
+                   }
 
 #define AKN_ASSERTOK(cond, err) if (cond)                                                                  \
                                 {                                                                          \
                                   AknPrintError(AKINATOR_LOGNAME, __FILE__, __LINE__, __FUNC_NAME__, err); \
-                                  tree_.Dump(__FUNC_NAME__, AKINATOR_LOGNAME);                             \
+                                  tree_.Dump();                                                            \
                                   exit(err); /**/                                                          \
                                 }
 
@@ -84,6 +97,7 @@ static const char* AKINATOR_LOGNAME = "Akinator.log";
 //==============================================================================
 
 
+static const char* GRAPH_FILENAME   = "Base.dot";
 static const char* DEFAULT_BASENAME = "Base.dat";
 const size_t MAX_STR_LEN = 128;
 
@@ -199,7 +213,7 @@ private:
  *  @return  character name
  */
 
-    char* scanChar ();
+    char* scanChar (char c);
 
 //------------------------------------------------------------------------------
 /*! @brief   Print feature to console.
@@ -221,6 +235,31 @@ private:
  */
 
     int addAns (Node<char*>* node_cur);
+
+//------------------------------------------------------------------------------
+/*! @brief   Check base for errors.
+ * 
+ *  @param   node_cur    Current node
+ *
+ *  @return  error code
+ */
+
+    int checkBase (Node<char*>* node_cur);
+
+//------------------------------------------------------------------------------
+/*! @brief   Print the contents of the tree like a graphviz dot file.
+ *
+ *  @param   graphname   Name of the graph file
+ */
+
+    void printGraphBase (const char* graphname = GRAPH_FILENAME);
+
+//------------------------------------------------------------------------------
+/*! @brief   Recursive print the contents of the tree like a graphviz dot file.
+ *
+ *  @param   graph       Dump graphviz dot file
+ */
+    void printGraphNode (FILE* graph, Node<char*>* node_cur);
 
 //------------------------------------------------------------------------------
 };

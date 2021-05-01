@@ -180,7 +180,7 @@ private:
     int Expand ();
 
 //------------------------------------------------------------------------------
-/*! @brief   Check stack for problems, canaries, hash (if enabled).
+/*! @brief   Check stack for problems and hash (if enabled).
  *
  *  @return  error code
  */

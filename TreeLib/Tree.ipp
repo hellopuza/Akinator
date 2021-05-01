@@ -9,6 +9,11 @@
     *///------------------------------------------------------------------------
 
 template <typename TYPE>
+Node<TYPE>::Node () { }
+
+//------------------------------------------------------------------------------
+
+template <typename TYPE>
 Tree<TYPE>::Tree () : errCode_ (TREE_NOT_CONSTRUCTED) { }
 
 //------------------------------------------------------------------------------
@@ -30,7 +35,9 @@ Tree<TYPE>::Tree (char* tree_name, Node<TYPE>* root) :
     root_      (Node),
     id_        (tree_id++),
     errCode_   (TREE_OK)
-{}
+{
+    TREE_CHECK;
+}
 
 //------------------------------------------------------------------------------
 
@@ -57,8 +64,7 @@ Tree<TYPE>::Tree (char* tree_name, char* base_filename) :
         TREE_ASSERTOK(err, err);
     }
 
-
-    // DUMP_PRINT{ Dump(__FUNC_NAME__); }
+    TREE_CHECK;
 }
 
 //------------------------------------------------------------------------------
@@ -77,6 +83,26 @@ Tree<TYPE>::~Tree ()
 
         errCode_ = TREE_DESTRUCTED;
     }
+}
+
+//------------------------------------------------------------------------------
+
+template <typename TYPE>
+void Node<TYPE>::destruct ()
+{
+    if (left_  != nullptr) left_->destruct();
+    if (right_ != nullptr) right_->destruct();
+
+    left_  = nullptr;
+    right_ = nullptr;
+    prev_  = nullptr;
+
+    if (is_dynamic_) delete [] data_;
+    is_dynamic_ = false;
+
+    data_ = POISON<TYPE>;
+    
+    delete this;
 }
 
 //------------------------------------------------------------------------------
@@ -129,63 +155,151 @@ int Node<TYPE>::AddFromBase (const Text& base, size_t& line_cur)
 //------------------------------------------------------------------------------
 
 template <typename TYPE>
-void Node<TYPE>::destruct ()
-{
-    assert(this != nullptr);
-    
-    if (left_  != nullptr) left_->destruct();
-    if (right_ != nullptr) right_->destruct();
-
-    left_  = nullptr;
-    right_ = nullptr;
-    prev_  = nullptr;
-
-    if (is_dynamic_) delete [] data_;
-
-    data_ = POISON<TYPE>;
-    
-    delete this;
-}
-
-//------------------------------------------------------------------------------
-
-template <typename TYPE>
 void Tree<TYPE>::dCopy (const Tree& obj)
 {
+    TREE_CHECK;
 
+    if (obj.root_ != nullptr)
+    {
+        if (root_ == nullptr) root_ = new Node<TYPE>;
+        root_->dCopy(obj.root_);
+    }
+    else root_ = nullptr;
 }
 
 //------------------------------------------------------------------------------
 
 template <typename TYPE>
-int Tree<TYPE>::Dump (const char* funcname, const char* logfile)
+void Node<TYPE>::dCopy (const Node& obj)
 {
-    printf("tree dump");
+    assert(this != nullptr);
 
-    return TREE_OK;
+    if (is_dynamic_)
+        delete [] data_;
+
+    if (obj.is_dynamic_)
+        if constexpr (std::is_same<TYPE, char*>::value)
+            data_ = new char[strlen(obj.data_) + 2] {};
+
+    copyType(data_, obj.data_);
+    is_dynamic_ = obj.is_dynamic_;
+
+    if (obj.right_ != nullptr)
+    {
+        if (right_ == nullptr) right_ = new Node<TYPE>;
+        right_->dCopy(obj.right_);
+        right_->right_ = this;
+    }
+    else right_ = nullptr;
+    
+    if (obj.left_ != nullptr)
+    {
+        if (left_ == nullptr) left_ = new Node<TYPE>;
+        left_->dCopy(obj.left_);
+        left_->prev_ = this;
+    }
+    else left_ = nullptr;
+
+    if (prev_ == nullptr) depth_ = 0;
+    else depth_ = prev_.depth + 1;
 }
 
 //------------------------------------------------------------------------------
 
 template <typename TYPE>
-int Tree<TYPE>::write (const char* basename)
+void Tree<TYPE>::Dump (const char* dumpname)
+{
+    FILE* dump = fopen(dumpname, "w");
+    assert(dump != nullptr);
+
+    fprintf(dump, "digraph G{\n" "rankdir = HR;\n node[shape=box];\n");
+
+    root_->Dump(dump);
+
+    fprintf(dump, "\tlabelloc=\"t\";"
+                  "\tlabel=\"Tree name: %s\\nType is %s\";"
+                  "}\n", name_, PRINT_TYPE<TYPE>);
+
+    fclose(dump);
+
+    char command[128] = "";
+
+    sprintf(command, "win_iconv -f 1251 -t UTF8 \"%s\" > \"new%s\"", dumpname, dumpname);
+    system(command);
+
+    sprintf(command, "dot -Tpng -o graph.png new%s", dumpname);
+    system(command);
+}
+
+//------------------------------------------------------------------------------
+
+template <typename TYPE>
+void Node<TYPE>::Dump (FILE* dump)
+{
+    assert(dump != nullptr);
+    
+    fprintf(dump, "\t \"this: 0x%08X\\n", this);
+    fprintf(dump, " prev: 0x%08X\\n depth: %u\\n data: [", prev_, depth_);
+    fprintf(dump, PRINT_FORMAT<TYPE>, data_);
+    fprintf(dump, "]\\n left: 0x%08X | right: 0x%08X\\n", left_, right_);
+    fprintf(dump, "\" [shape = box, style = filled, color = black, fillcolor = lightskyblue]\n");
+
+    if (left_ != nullptr)
+    {
+        fprintf(dump, "\t \"this: 0x%08X\\n", this);
+        fprintf(dump, " prev: 0x%08X\\n depth: %u\\n data: [", prev_, depth_);
+        fprintf(dump, PRINT_FORMAT<TYPE>, data_);
+        fprintf(dump, "]\\n left: 0x%08X | right: 0x%08X\\n", left_, right_);
+
+        fprintf(dump, "\" -> \"");
+
+        fprintf(dump, "this: 0x%08X\\n", left_);
+        fprintf(dump, " prev: 0x%08X\\n depth: %u\\n data: [", left_->prev_, left_->depth_);
+        fprintf(dump, PRINT_FORMAT<TYPE>, left_->data_);
+        fprintf(dump, "]\\n left: 0x%08X | right: 0x%08X\\n", left_->left_, left_->right_);
+        fprintf(dump, "\" [label=\"left\"]\n");
+    }
+
+    if (right_ != nullptr)
+    {
+        fprintf(dump, "\t \"this: 0x%08X\\n", this);
+        fprintf(dump, " prev: 0x%08X\\n depth: %u\\n data: [", prev_, depth_);
+        fprintf(dump, PRINT_FORMAT<TYPE>, data_);
+        fprintf(dump, "]\\n left: 0x%08X | right: 0x%08X\\n", left_, right_);
+
+        fprintf(dump, "\" -> \"");
+
+        fprintf(dump, "this: 0x%08X\\n", right_);
+        fprintf(dump, " prev: 0x%08X\\n depth: %u\\n data: [", right_->prev_, right_->depth_);
+        fprintf(dump, PRINT_FORMAT<TYPE>, right_->data_);
+        fprintf(dump, "]\\n left: 0x%08X | right: 0x%08X\\n", right_->left_, right_->right_);
+        fprintf(dump, "\" [label=\"right\"]\n");
+    }
+
+
+    if (left_  != nullptr) left_->Dump(dump);
+    if (right_ != nullptr) right_->Dump(dump);
+}
+
+//------------------------------------------------------------------------------
+
+template <typename TYPE>
+void Tree<TYPE>::Write (const char* basename)
 {
     FILE* base = fopen(basename, "w");
     assert(base != nullptr);
 
     fprintf(base, "[\n");
-    if (root_ != nullptr) root_->write(base);
+    if (root_ != nullptr) root_->Write(base);
     fprintf(base, "]");
 
     fclose(base);
-
-    return TREE_OK;
 }
 
 //------------------------------------------------------------------------------
 
 template <typename TYPE>
-void Node<TYPE>::write (FILE* base)
+void Node<TYPE>::Write (FILE* base)
 {
     assert(base != nullptr);
 
@@ -198,18 +312,18 @@ void Node<TYPE>::write (FILE* base)
         for (int i = 0; i <= depth_; ++i) fprintf(base, "    ");
         fprintf(base, "[\n");
 
-        right_->write(base);
+        right_->Write(base);
         
         for (int i = 0; i <= depth_; ++i) fprintf(base, "    ");
         fprintf(base, "]\n");
     }
 
-    if (right_ != nullptr)
+    if (left_ != nullptr)
     {
         for (int i = 0; i <= depth_; ++i) fprintf(base, "    ");
         fprintf(base, "[\n");
 
-        if (left_ != nullptr) left_->write(base);
+        if (left_ != nullptr) left_->Write(base);
 
         for (int i = 0; i <= depth_; ++i) fprintf(base, "    ");
         fprintf(base, "]\n");
@@ -266,15 +380,64 @@ int Node<TYPE>::findPath (Stack<size_t>& path, TYPE elem)
     if ((left_ == nullptr) && (right_ == nullptr))
     {
         if constexpr (std::is_same<TYPE, char*>::value)
-        {
-            if (strcmp(elem, data_) == 0) found = true;
-        }
-        else found = (elem == data_);
+            found = (strcmp(elem, data_) == 0);
+        else
+            found = (elem == data_);
     }
 
     if (not found) path.Pop();
 
     return found;
+}
+
+//------------------------------------------------------------------------------
+
+template <typename TYPE>
+int Tree<TYPE>::Check ()
+{
+    int err = TREE_OK;
+
+    if (root_ != nullptr)
+        err = root_->Check();
+
+    errCode_ = err;
+
+    return err;
+}
+
+//------------------------------------------------------------------------------
+
+template <typename TYPE>
+int Node<TYPE>::Check ()
+{
+    if ( ((prev_ == nullptr) && (depth_ != 0)) ||
+         ((prev_ != nullptr) && (depth_ != prev_->depth_ + 1)) )
+        return TREE_WRONG_DEPTH;
+
+    if (prev_ != nullptr)
+        if ((prev_->right_ != this) &&
+            (prev_->left_ != this))
+            return TREE_WRONG_PREV_NODE;
+
+    if (right_ != nullptr)
+        if (right_->prev_ != this)
+            return TREE_WRONG_PREV_NODE;
+
+    if (left_ != nullptr)
+        if (left_->prev_ != this)
+            return TREE_WRONG_PREV_NODE;
+
+    int err = TREE_OK;
+
+    if (right_ != nullptr)
+        err = right_->Check();
+
+    if (err) return err;
+
+    if (left_ != nullptr)
+        err = left_->Check();
+
+    return err;
 }
 
 //------------------------------------------------------------------------------

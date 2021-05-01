@@ -29,21 +29,11 @@
 
 #endif
 
-
 #define CONSOLE_PRINT  if(1)
 
-#ifdef  NO_DUMP
 
-    #define DUMP_PRINT if(0)
-
-#else
-
-    #define DUMP_PRINT if(1)
-
-#endif // NO_DUMP
-
-
-static const char* TREE_LOGNAME = "tree.log";
+static const char* DUMP_NAME         = "graph.dot";
+static const char* TREE_LOGNAME      = "tree.log";
 static const char* DEFAULT_BASE_NAME = "Base.dat";
 
 static const char* OPEN_BRACKET  = "[";
@@ -67,7 +57,9 @@ enum TreeErrors
     TREE_NULL_INPUT_TREE_PTR                                        ,
     TREE_NULL_TREE_PTR                                              ,
     TREE_TOO_MANY_TREES                                             ,
+    TREE_WRONG_DEPTH                                                ,
     TREE_WRONG_INPUT_TREE_NAME                                      ,
+    TREE_WRONG_PREV_NODE                                            ,
     TREE_WRONG_SYNTAX_INPUT_BASE                                    ,
 };
 
@@ -86,7 +78,9 @@ static const char* tree_errstr[] =
     "The input value of the tree pointer turned out to be zero"     ,
     "The pointer to the TREE is null, tree lost"                    ,
     "Too many trees created, cannot create a new one"               ,
+    "Wrong node depth found"                                        ,
     "Wrong input tree name"                                         ,
+    "Wrong pointer to previous node found"                          ,
     "Wrong syntax of input base"                                    ,
 };
 
