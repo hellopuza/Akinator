@@ -186,6 +186,14 @@ size_t Stack<TYPE>::getSize() const
 //------------------------------------------------------------------------------
 
 template <typename TYPE>
+const char* Stack<TYPE>::getName() const
+{
+    return name_;
+}
+
+//------------------------------------------------------------------------------
+
+template <typename TYPE>
 TYPE& Stack<TYPE>::operator [] (size_t n)
 {
     STACK_ASSERTOK((n >= capacity_), STACK_MEM_ACCESS_VIOLATION);

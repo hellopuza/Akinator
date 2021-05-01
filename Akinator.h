@@ -14,8 +14,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 //#define NDEBUG
 
-//#define TX_USE_SPEAK
-#include "C:\Users\admin\Documents\.Programming\C\TX\TXLib.h"
 
 #if defined (__GNUC__) || defined (__clang__) || defined (__clang_major__)
     #define __FUNC_NAME__   __PRETTY_FUNCTION__
@@ -56,6 +54,9 @@ enum AkinatorErrors
     AKN_INCORRECT_INPUT_SYNTAX_BASE                                    ,
     AKN_NULL_INPUT_AKINATOR_PTR                                        ,
     AKN_NULL_INPUT_FILENAME                                            ,
+    AKN_WRONG_SYNTAX_TREE_LEAF                                         ,
+    AKN_WRONG_SYNTAX_TREE_NODE                                         ,
+    AKN_WRONG_TREE_ONE_CHILD                                           ,
 };
 
 static const char* akn_errstr[] =
@@ -68,6 +69,9 @@ static const char* akn_errstr[] =
     "Incorrect input syntax base"                                      ,
     "The input value of the Akinator pointer turned out to be zero"    ,
     "The input value of the Akinator filename turned out to be zero"   ,
+    "Wrohg syntax tree leaf"                                           ,
+    "Wrohg syntax tree node"                                           ,
+    "Every node must have 0 or 2 children"                             ,
 };
 
 static const char* AKINATOR_LOGNAME = "akinator.log";
@@ -75,18 +79,19 @@ static const char* AKINATOR_LOGNAME = "akinator.log";
 #define BASE_CHECK if (tree_.Check ())                              \
                    {                                                \
                      tree_.Dump();                                  \
-                     TREE_ASSERTOK(tree_.errCode_, tree_.errCode_); \
+                     tree_.PrintError (TREE_LOGNAME , __FILE__, __LINE__, __FUNC_NAME__, tree_.errCode_); \
+                     exit(tree_.errCode_);                          \
                    }                                                \
                    if (checkBase (tree_.root_))                     \
                    {                                                \
                      AKN_ASSERTOK(state_, state_);                  \
                    }
 
-#define AKN_ASSERTOK(cond, err) if (cond)                                                                  \
-                                {                                                                          \
-                                  AknPrintError(AKINATOR_LOGNAME, __FILE__, __LINE__, __FUNC_NAME__, err); \
-                                  tree_.Dump();                                                            \
-                                  exit(err); /**/                                                          \
+#define AKN_ASSERTOK(cond, err) if (cond)                                                               \
+                                {                                                                       \
+                                  PrintError(AKINATOR_LOGNAME, __FILE__, __LINE__, __FUNC_NAME__, err); \
+                                  tree_.Dump();                                                         \
+                                  exit(err); /**/                                                       \
                                 }
 
 
@@ -101,6 +106,9 @@ static const char* GRAPH_FILENAME   = "Base.dot";
 static const char* DEFAULT_BASENAME = "Base.dat";
 const size_t MAX_STR_LEN = 128;
 
+const char FEAT_SIGN = '?';
+const char CHAR_SIGN = '\'';
+
 class Akinator
 {
 private:
@@ -109,6 +117,7 @@ private:
     char* filename_ = (char*)DEFAULT_BASENAME;
 
     Tree<char*> tree_;
+    Stack<char*> path2node_;
 
 public:
 
@@ -145,8 +154,6 @@ public:
 //------------------------------------------------------------------------------
 /*! @brief   Execution process.
  *
- *  @note    """
- *
  *  @return  error code
  */
 
@@ -161,8 +168,6 @@ private:
 //------------------------------------------------------------------------------
 /*! @brief   Character guessing process.
  *
- *  @note    """
- *
  *  @return  error code
  */
 
@@ -171,8 +176,6 @@ private:
 //------------------------------------------------------------------------------
 /*! @brief   Character finding process.
  *
- *  @note    """
- *
  *  @return  error code
  */
 
@@ -180,8 +183,6 @@ private:
 
 //------------------------------------------------------------------------------
 /*! @brief   Character comparison process.
- *
- *  @note    """
  *
  *  @return  error code
  */
@@ -262,9 +263,6 @@ private:
     void printGraphNode (FILE* graph, Node<char*>* node_cur);
 
 //------------------------------------------------------------------------------
-};
-
-//------------------------------------------------------------------------------
 /*! @brief   Prints an error wih description to the console and to the log file.
  *
  *  @param   logname     Name of the log file
@@ -274,7 +272,10 @@ private:
  *  @param   err         Error code
  */
 
-void AknPrintError (const char* logname, const char* file, int line, const char* function, int err);
+    void PrintError (const char* logname, const char* file, int line, const char* function, int err);
+
+//------------------------------------------------------------------------------
+};
 
 //------------------------------------------------------------------------------
 

@@ -33,8 +33,9 @@
 
 
 static const char* DUMP_NAME         = "graph.dot";
-static const char* TREE_LOGNAME      = "tree.log";
+static const char* DUMP_PICT_NAME    = "graph.png";
 static const char* DEFAULT_BASE_NAME = "Base.dat";
+static const char* TREE_LOGNAME      = "tree.log";
 
 static const char* OPEN_BRACKET  = "[";
 static const char* CLOSE_BRACKET = "]";

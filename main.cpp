@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
     SetConsoleOutputCP(1251);
 #endif // _WIN32
 
-    setlocale(0, "");
+    Akinator akn;
     
     if (argc == 1)
     {

@@ -35,10 +35,10 @@
                    }
 
 
-#define TREE_ASSERTOK(cond, err) if (cond)                                                                 \
-                                 {                                                                         \
-                                   TreePrintError (TREE_LOGNAME , __FILE__, __LINE__, __FUNC_NAME__, err); \
-                                   exit(err); /**/                                                         \
+#define TREE_ASSERTOK(cond, err) if (cond)                                                            \
+                                 {                                                                    \
+                                   PrintError(TREE_LOGNAME , __FILE__, __LINE__, __FUNC_NAME__, err); \
+                                   exit(err); /**/                                                    \
                                  }
 
 static int tree_id = 0;
@@ -56,7 +56,15 @@ static int tree_id = 0;
 template <typename TYPE>
 struct Node
 {
-    TYPE data_ = POISON<TYPE>;
+private:
+
+    template <typename TYPE>
+    friend class Tree;
+
+    TYPE data_       = POISON<TYPE>;
+    bool is_dynamic_ = false;
+
+public:
 
     Node* left_  = nullptr;
     Node* right_ = nullptr;
@@ -64,13 +72,49 @@ struct Node
 
     size_t depth_ = 0;
 
-    bool is_dynamic_ = false;
-
 //------------------------------------------------------------------------------
 /*! @brief   Tree default constructor.
 */
 
     Node ();
+
+//------------------------------------------------------------------------------
+/*! @brief   Recursive tree destruction.
+ */
+
+    ~Node ();
+
+//------------------------------------------------------------------------------
+/*! @brief   Safe change node data.
+ *
+ *  @param   data        Data to change
+ */
+
+    void setData (TYPE data);
+
+//------------------------------------------------------------------------------
+/*! @brief   Get node data.
+ *
+ *  @return  node data
+ */
+
+    const TYPE& getData ();
+
+//------------------------------------------------------------------------------
+/*! @brief   Recursive depth recount.
+ */
+
+    void recountDepth ();
+
+//------------------------------------------------------------------------------
+/*! @brief   Node deep copy constructor.
+ *
+ *  @param   obj         Source node
+ */
+
+    void dCopy (const Node& obj);
+
+private:
 
 //------------------------------------------------------------------------------
 /*! @brief   Create a tree from the base text.
@@ -82,12 +126,6 @@ struct Node
  */
 
     int AddFromBase (const Text& base, size_t& line_cur);
-
-//------------------------------------------------------------------------------
-/*! @brief   Recursive tree destruction.
- */
-
-    void destruct ();
 
 //------------------------------------------------------------------------------
 /*! @brief   Node copy constructor (deleted).
@@ -108,12 +146,6 @@ struct Node
     void Write (FILE* base);
 
 //------------------------------------------------------------------------------
-/*! @brief   Recursive depth recount.
- */
-
-    void recountDepth ();
-
-//------------------------------------------------------------------------------
 /*! @brief   Recursively find path to the element.
  *
  *  @param   path        Path to the element
@@ -125,20 +157,14 @@ struct Node
     int findPath (Stack<size_t>& path, TYPE elem);
 
 //------------------------------------------------------------------------------
-/*! @brief   Node deep copy constructor.
- *
- *  @param   obj         Source node
- */
-
-    void dCopy (const Node& obj);
-
-//------------------------------------------------------------------------------
 /*! @brief   Recursive node checker.
+ *
+ *  @param   tree        Tree of the node
  *
  *  @return  error code
  */
 
-    int Check ();
+    int Check (Tree<TYPE>* tree);
 
 //------------------------------------------------------------------------------
 /*! @brief   Recursive print the contents of the tree like a graphviz dot file.
@@ -153,14 +179,19 @@ struct Node
 
 
 template <typename TYPE>
-struct Tree
+class Tree
 {
-    const char* name_ = nullptr;
+public:
 
+    const char* name_ = nullptr;
     Node<TYPE>* root_ = nullptr;
 
     int id_ = 0;
     int errCode_;
+
+    Stack<TYPE> path2node_;
+
+public:
 
 //------------------------------------------------------------------------------
 /*! @brief   Tree default constructor.
@@ -254,10 +285,6 @@ struct Tree
     int Check ();
 
 //------------------------------------------------------------------------------
-};
-
-
-//------------------------------------------------------------------------------
 /*! @brief   Print error explanations to log file and to console.
  *
  *  @param   logname     Name of the log file
@@ -268,7 +295,20 @@ struct Tree
  *  @return  error code
  */
 
-static void TreePrintError (const char* logname, const char* file, int line, const char* function, int err);
+    void PrintError (const char* logname, const char* file, int line, const char* function, int err);
+
+//------------------------------------------------------------------------------
+/*! @brief   Prints a section of base text with an error to the console and to the log file.
+ *
+ *  @param   base        Text base
+ *  @param   line        Number of line with an error
+ *  @param   logname     Name of the log file
+ */
+
+    void PrintCode (Text& base, size_t line, const char* logname);
+
+//------------------------------------------------------------------------------
+};
 
 //------------------------------------------------------------------------------
 

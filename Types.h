@@ -1,7 +1,9 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <type_traits>
 #include <limits.h>
+#include <string.h>
 #include <math.h>
 
 
@@ -30,7 +32,7 @@
     template<> const char* PRINT_FORMAT<double> = "%lf";
     template<> const char* PRINT_FORMAT<float>  = "%f";
     template<> const char* PRINT_FORMAT<int>    = "%d";
-    template<> const char* PRINT_FORMAT<size_t> = "0x%08X";
+    template<> const char* PRINT_FORMAT<size_t> = "0x%p";
     template<> const char* PRINT_FORMAT<char>   = "%c";
     template<> const char* PRINT_FORMAT<char*>  = "%s";
 

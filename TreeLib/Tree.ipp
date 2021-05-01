@@ -60,8 +60,12 @@ Tree<TYPE>::Tree (char* tree_name, char* base_filename) :
     size_t line_cur = 1;
     if (strcmp(base.lines_[line_cur].str, CLOSE_BRACKET) != 0)
     {
-        int err = root_->AddFromBase(base, line_cur);
-        TREE_ASSERTOK(err, err);
+        if (root_->AddFromBase(base, line_cur) == TREE_WRONG_SYNTAX_INPUT_BASE)
+        {
+            PrintError(TREE_LOGNAME , __FILE__, __LINE__, __FUNC_NAME__, TREE_WRONG_SYNTAX_INPUT_BASE);
+            PrintCode(base, line_cur, TREE_LOGNAME);
+            exit(TREE_WRONG_SYNTAX_INPUT_BASE);
+        };
     }
 
     TREE_CHECK;
@@ -77,32 +81,43 @@ Tree<TYPE>::~Tree ()
     else if (errCode_ != TREE_DESTRUCTED)
     {
         if (root_ != nullptr)
-            root_->destruct();
+            root_->~Node();
 
         root_ = nullptr;
 
         errCode_ = TREE_DESTRUCTED;
+    }
+    else
+    {
+        TREE_ASSERTOK(TREE_DESTRUCTOR_REPEATED, TREE_DESTRUCTOR_REPEATED);
     }
 }
 
 //------------------------------------------------------------------------------
 
 template <typename TYPE>
-void Node<TYPE>::destruct ()
+Node<TYPE>::~Node ()
 {
-    if (left_  != nullptr) left_->destruct();
-    if (right_ != nullptr) right_->destruct();
+    if (right_ != nullptr)
+    {
+        right_->~Node();
+        delete right_;
+        right_ = nullptr;
+    }
 
-    left_  = nullptr;
-    right_ = nullptr;
-    prev_  = nullptr;
+    if (left_ != nullptr)
+    {
+        left_->~Node();
+        delete left_;
+        left_  = nullptr;
+    }
+
+    prev_ = nullptr;
 
     if (is_dynamic_) delete [] data_;
     is_dynamic_ = false;
 
     data_ = POISON<TYPE>;
-    
-    delete this;
 }
 
 //------------------------------------------------------------------------------
@@ -227,7 +242,10 @@ void Tree<TYPE>::Dump (const char* dumpname)
     sprintf(command, "win_iconv -f 1251 -t UTF8 \"%s\" > \"new%s\"", dumpname, dumpname);
     system(command);
 
-    sprintf(command, "dot -Tpng -o graph.png new%s", dumpname);
+    sprintf(command, "dot -Tpng -o %s new%s", DUMP_PICT_NAME, dumpname);
+    system(command);
+
+    sprintf(command, "del new%s", dumpname);
     system(command);
 }
 
@@ -238,41 +256,41 @@ void Node<TYPE>::Dump (FILE* dump)
 {
     assert(dump != nullptr);
     
-    fprintf(dump, "\t \"this: 0x%08X\\n", this);
-    fprintf(dump, " prev: 0x%08X\\n depth: %u\\n data: [", prev_, depth_);
+    fprintf(dump, "\t \"this: 0x%p\\n", this);
+    fprintf(dump, " prev: 0x%p\\n depth: %u\\n data: [", prev_, depth_);
     fprintf(dump, PRINT_FORMAT<TYPE>, data_);
-    fprintf(dump, "]\\n left: 0x%08X | right: 0x%08X\\n", left_, right_);
+    fprintf(dump, "]\\n left: 0x%p | right: 0x%p\\n", left_, right_);
     fprintf(dump, "\" [shape = box, style = filled, color = black, fillcolor = lightskyblue]\n");
 
     if (left_ != nullptr)
     {
-        fprintf(dump, "\t \"this: 0x%08X\\n", this);
-        fprintf(dump, " prev: 0x%08X\\n depth: %u\\n data: [", prev_, depth_);
+        fprintf(dump, "\t \"this: 0x%p\\n", this);
+        fprintf(dump, " prev: 0x%p\\n depth: %u\\n data: [", prev_, depth_);
         fprintf(dump, PRINT_FORMAT<TYPE>, data_);
-        fprintf(dump, "]\\n left: 0x%08X | right: 0x%08X\\n", left_, right_);
+        fprintf(dump, "]\\n left: 0x%p | right: 0x%p\\n", left_, right_);
 
         fprintf(dump, "\" -> \"");
 
-        fprintf(dump, "this: 0x%08X\\n", left_);
-        fprintf(dump, " prev: 0x%08X\\n depth: %u\\n data: [", left_->prev_, left_->depth_);
+        fprintf(dump, "this: 0x%p\\n", left_);
+        fprintf(dump, " prev: 0x%p\\n depth: %u\\n data: [", left_->prev_, left_->depth_);
         fprintf(dump, PRINT_FORMAT<TYPE>, left_->data_);
-        fprintf(dump, "]\\n left: 0x%08X | right: 0x%08X\\n", left_->left_, left_->right_);
+        fprintf(dump, "]\\n left: 0x%p | right: 0x%p\\n", left_->left_, left_->right_);
         fprintf(dump, "\" [label=\"left\"]\n");
     }
 
     if (right_ != nullptr)
     {
-        fprintf(dump, "\t \"this: 0x%08X\\n", this);
-        fprintf(dump, " prev: 0x%08X\\n depth: %u\\n data: [", prev_, depth_);
+        fprintf(dump, "\t \"this: 0x%p\\n", this);
+        fprintf(dump, " prev: 0x%p\\n depth: %u\\n data: [", prev_, depth_);
         fprintf(dump, PRINT_FORMAT<TYPE>, data_);
-        fprintf(dump, "]\\n left: 0x%08X | right: 0x%08X\\n", left_, right_);
+        fprintf(dump, "]\\n left: 0x%p | right: 0x%p\\n", left_, right_);
 
         fprintf(dump, "\" -> \"");
 
-        fprintf(dump, "this: 0x%08X\\n", right_);
-        fprintf(dump, " prev: 0x%08X\\n depth: %u\\n data: [", right_->prev_, right_->depth_);
+        fprintf(dump, "this: 0x%p\\n", right_);
+        fprintf(dump, " prev: 0x%p\\n depth: %u\\n data: [", right_->prev_, right_->depth_);
         fprintf(dump, PRINT_FORMAT<TYPE>, right_->data_);
-        fprintf(dump, "]\\n left: 0x%08X | right: 0x%08X\\n", right_->left_, right_->right_);
+        fprintf(dump, "]\\n left: 0x%p | right: 0x%p\\n", right_->left_, right_->right_);
         fprintf(dump, "\" [label=\"right\"]\n");
     }
 
@@ -333,6 +351,34 @@ void Node<TYPE>::Write (FILE* base)
 //------------------------------------------------------------------------------
 
 template <typename TYPE>
+void Node<TYPE>::setData (TYPE data)
+{
+    if (is_dynamic_)
+    {
+        is_dynamic_ = false;
+        delete [] data_;
+    }
+
+    if constexpr (std::is_same<TYPE, char*>::value)
+    {
+        data_ = new char [strlen(data) + 2] {};
+        is_dynamic_ = true;
+    }
+
+    copyType(data_, data);
+}
+
+//------------------------------------------------------------------------------
+
+template <typename TYPE>
+const TYPE& Node<TYPE>::getData ()
+{
+    return data_;
+}
+
+//------------------------------------------------------------------------------
+
+template <typename TYPE>
 void Node<TYPE>::recountDepth ()
 {
     if (prev_ == nullptr)
@@ -361,11 +407,10 @@ int Tree<TYPE>::findPath (Stack<size_t>& path, TYPE elem)
 template <typename TYPE>
 int Node<TYPE>::findPath (Stack<size_t>& path, TYPE elem)
 {
-    TREE_ASSERTOK((isPOISON(elem)), TREE_INPUT_DATA_POISON);
-
     path.Push((size_t)this);
     
     bool found = false;
+
     if (right_ != nullptr)
     {
         found = right_->findPath(path, elem);
@@ -398,7 +443,7 @@ int Tree<TYPE>::Check ()
     int err = TREE_OK;
 
     if (root_ != nullptr)
-        err = root_->Check();
+        err = root_->Check(this);
 
     errCode_ = err;
 
@@ -408,41 +453,60 @@ int Tree<TYPE>::Check ()
 //------------------------------------------------------------------------------
 
 template <typename TYPE>
-int Node<TYPE>::Check ()
+int Node<TYPE>::Check (Tree<TYPE>* tree)
 {
-    if ( ((prev_ == nullptr) && (depth_ != 0)) ||
-         ((prev_ != nullptr) && (depth_ != prev_->depth_ + 1)) )
+    if (((prev_ == nullptr) && (depth_ != 0)) ||
+        ((prev_ != nullptr) && (depth_ != prev_->depth_ + 1)))
+    {
+        tree->path2node_.Push(data_);
         return TREE_WRONG_DEPTH;
+    }
 
     if (prev_ != nullptr)
         if ((prev_->right_ != this) &&
             (prev_->left_ != this))
+        {
+            tree->path2node_.Push(data_);
             return TREE_WRONG_PREV_NODE;
+        }
 
     if (right_ != nullptr)
         if (right_->prev_ != this)
+        {
+            tree->path2node_.Push(data_);
             return TREE_WRONG_PREV_NODE;
+        }
 
     if (left_ != nullptr)
         if (left_->prev_ != this)
+        {
+            tree->path2node_.Push(data_);
             return TREE_WRONG_PREV_NODE;
+        }
 
     int err = TREE_OK;
 
     if (right_ != nullptr)
-        err = right_->Check();
+        err = right_->Check(tree);
 
-    if (err) return err;
+    if (err)
+    {
+        tree->path2node_.Push(data_);
+        return err;
+    }
 
     if (left_ != nullptr)
-        err = left_->Check();
+        err = left_->Check(tree);
+
+    if (err) tree->path2node_.Push(data_);
 
     return err;
 }
 
 //------------------------------------------------------------------------------
 
-static void TreePrintError (const char* logname, const char* file, int line, const char* function, int err)
+template <typename TYPE>
+void Tree<TYPE>::PrintError (const char* logname, const char* file, int line, const char* function, int err)
 {
     assert(function != nullptr);
     assert(logname  != nullptr);
@@ -466,8 +530,70 @@ static void TreePrintError (const char* logname, const char* file, int line, con
     fprintf(log, "ERROR: file %s  line %d  function %s\n\n", file, line, function);
     fprintf(log, "%s\n", tree_errstr[err + 1]);
 
+    if (path2node_.getSize() != 0)
+    {
+        fprintf(log, "%s", path2node_.getName());
+        for (int i = path2node_.getSize() - 1; i > -1; --i)
+        {
+            fprintf(log, " -> [");
+            fprintf(log, PRINT_FORMAT<TYPE>, path2node_[i]);
+            fprintf(log, "]");
+        }
+
+        fprintf(log, "\n");
+    }
+    fprintf(log, "You can look tree dump in %s\n", DUMP_PICT_NAME);
+    fclose(log);
+
+    ////
+
     printf("ERROR: file %s  line %d  function %s\n", file, line, function);
     printf("%s\n\n", tree_errstr[err + 1]);
+
+    if (path2node_.getSize() != 0)
+    {
+        printf("%s", path2node_.getName());
+        for (int i = path2node_.getSize() - 1; i > -1; --i)
+        {
+            printf(" -> [");
+            printf(PRINT_FORMAT<TYPE>, path2node_[i]);
+            printf("]");
+        }
+
+        printf("\n");
+    }
+    printf (     "You can look tree dump in %s\n", DUMP_PICT_NAME);
+}
+
+//------------------------------------------------------------------------------
+
+template <typename TYPE>
+void Tree<TYPE>::PrintCode (Text& base, size_t line, const char* logname)
+{
+    assert(logname != nullptr);
+
+    FILE* log = fopen(logname, "a");
+    assert(log != nullptr);
+
+    fprintf(log, "\n");
+    printf (     "\n");
+
+    fprintf(log, "////////////////--TEXT-SECTION--////////////////" "\n");
+    printf (     "////////////////--TEXT-SECTION--////////////////" "\n");
+
+    size_t true_line = line + 1;
+    
+    for (int i = -2; i <= 2; ++i)
+    {
+        if ((true_line + i > 0) && (true_line + i <= base.num_))
+        {
+            fprintf(log, "%s%5d: %s\n", ((i == 0)? "=>" : "  "), true_line + i, base.lines_[true_line + i - 1].str);
+            printf (     "%s%5d: %s\n", ((i == 0)? "=>" : "  "), true_line + i, base.lines_[true_line + i - 1].str);
+        }
+    }
+
+    fprintf(log, "////////////////////////////////////////////////" "\n\n");
+    printf (     "////////////////////////////////////////////////" "\n\n");
 
     fclose(log);
 }

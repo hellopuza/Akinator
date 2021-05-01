@@ -13,8 +13,9 @@
 //------------------------------------------------------------------------------
 
 Akinator::Akinator () :
-    tree_  ((char*)"default", (char*)DEFAULT_BASE_NAME),
-    state_ (AKN_OK)
+    tree_      ((char*)"default", (char*)DEFAULT_BASE_NAME),
+    path2node_ ((char*)"path to problem node"),
+    state_     (AKN_OK)
 {
     BASE_CHECK;
 }
@@ -22,9 +23,10 @@ Akinator::Akinator () :
 //------------------------------------------------------------------------------
 
 Akinator::Akinator (char* filename) :
-    tree_     (filename, filename),
-    filename_ (filename),
-    state_    (AKN_OK)
+    tree_      (filename, filename),
+    path2node_ ((char*)"path2node_"),
+    filename_  (filename),
+    state_     (AKN_OK)
 {
     BASE_CHECK;
 }
@@ -37,8 +39,6 @@ Akinator::~Akinator ()
     AKN_ASSERTOK((state_ == AKN_DESTRUCTED), AKN_DESTRUCTED             );
 
     filename_ = nullptr;
-
-    tree_.~Tree();
 
     state_ = AKN_DESTRUCTED;
 }
@@ -104,13 +104,13 @@ int Akinator::Guessing ()
         bool isAns = false;
 
         char question[MAX_STR_LEN] = "";
-        if (node_cur->data_[0] == '?')
-            strcpy(question, node_cur->data_ + 1);
+        if (node_cur->getData()[0] == FEAT_SIGN)
+            strcpy(question, node_cur->getData() + 1);
 
-        else if (node_cur->data_[0] == '\'')
+        else if (node_cur->getData()[0] == CHAR_SIGN)
         {
-            strcpy(question, node_cur->data_ + 1);
-            question[strlen(question) - 1] = '?';
+            strcpy(question, node_cur->getData() + 1);
+            question[strlen(question) - 1] = FEAT_SIGN;
             isAns = true;
         }
         else AKN_ASSERTOK(AKN_INCORRECT_INPUT_SYNTAX_BASE, AKN_INCORRECT_INPUT_SYNTAX_BASE);
@@ -122,7 +122,7 @@ int Akinator::Guessing ()
         {
             if (isAns)
             {
-                printf("Я угадал!\n");
+                printf("\nЯ угадал!\n");
                 return AKN_OK;
             }
             
@@ -132,7 +132,7 @@ int Akinator::Guessing ()
         {
             if (isAns)
             {
-                printf("Я не угадал\n");
+                printf("\nЯ не угадал\n");
                 printf("Пожалуйста дополните мою базу правильным ответом\n");
 
                 addAns(node_cur);
@@ -151,7 +151,7 @@ int Akinator::Guessing ()
 int Akinator::CharFind ()
 {
     printf("Введите персонажа, о котором хотите узнать: ");
-    char* charname = scanChar('\'');
+    char* charname = scanChar(CHAR_SIGN);
 
     newStack(path, size_t);
     bool found = tree_.findPath(path, charname);
@@ -177,7 +177,7 @@ int Akinator::CharFind ()
 int Akinator::CharCmp ()
 {
     printf("Введите первого персонажа, которого хотите сравнить: ");
-    char* char1 = scanChar('\'');
+    char* char1 = scanChar(CHAR_SIGN);
 
     newStack(path1, size_t);
     bool found = tree_.findPath(path1, char1);
@@ -188,7 +188,7 @@ int Akinator::CharCmp ()
     }
 
     printf("Введите второго персонажа, которого хотите сравнить: ");
-    char* char2 = scanChar('\'');
+    char* char2 = scanChar(CHAR_SIGN);
 
     newStack(path2, size_t);
     found = tree_.findPath(path2, char2);
@@ -296,11 +296,11 @@ char* Akinator::scanChar (char c)
 inline void Akinator::printFeature (const Stack<size_t>& path, size_t item)
 {
     if (((Node<char*>*)path[item])->left_ == (Node<char*>*)path[item + 1])
-        txSpeak("\vне ");
+        printf("не ");
     else if (((Node<char*>*)path[item])->right_ != (Node<char*>*)path[item + 1])
         assert(0);
 
-    txSpeak("\v%s\b", ((Node<char*>*)path[item])->data_ + 1);
+    printf("%s\b", ((Node<char*>*)path[item])->getData() + 1);
     if (item != path.getSize() - 2) printf(", ");
 }
 
@@ -311,22 +311,32 @@ int Akinator::addAns (Node<char*>* node_cur)
     assert(node_cur != nullptr);
 
     printf("Введите вашего персонажа: ");
-    char* newchar = scanChar('\'');
+    char* newchar = scanChar(CHAR_SIGN);
+
+    newStack(path, size_t);
+    if (tree_.findPath(path, newchar))
+    {
+        printf("Такой персонаж уже есть: %s\b - ", newchar + 1);
+        for (int i = 0; i < path.getSize() - 1; ++i)
+            printFeature(path, i);
+        printf(".\n");
+
+        return AKN_OK;
+    }
 
     char oldchar[MAX_STR_LEN] = "";
-    strcpy(oldchar, node_cur->data_ + 1);
+    strcpy(oldchar, node_cur->getData() + 1);
     oldchar[strlen(oldchar) - 1] = '\0';
 
     printf("Введите признак отличающий %s от %s: ", newchar, oldchar);
-    char* feature = scanChar('?');
+    char* feature = scanChar(FEAT_SIGN);
 
     Node<char*>* prevNode = node_cur->prev_;
 
     Node<char*>* featureNode = new Node<char*>;
     featureNode->prev_ = prevNode;
 
-    featureNode->data_ = feature;
-    featureNode->is_dynamic_ = true;
+    featureNode->setData(feature);
 
     if (prevNode != nullptr)
         if (node_cur == prevNode->right_)
@@ -340,20 +350,20 @@ int Akinator::addAns (Node<char*>* node_cur)
     newcharNode->prev_ = featureNode;
     node_cur->prev_    = featureNode;
 
-    newcharNode->data_ = newchar;
-    newcharNode->is_dynamic_ = true;
+    newcharNode->setData(newchar);
 
     featureNode->right_ = newcharNode;
     featureNode->left_  = node_cur;
+
+    delete[] feature;
+    delete[] newchar;
 
     featureNode->recountDepth();
 
     printf("\nСохранить в базу?\n");
     printf("Answer [Y/n]? ");
     if (scanAns())
-    {
         tree_.Write(filename_);
-    }
 
     return AKN_OK;
 }
@@ -363,9 +373,49 @@ int Akinator::addAns (Node<char*>* node_cur)
 int Akinator::checkBase (Node<char*>* node_cur)
 {
     assert(node_cur != nullptr);
-    
 
-    return AKN_OK;
+    size_t len = strlen(node_cur->getData());
+    
+    if ((node_cur->left_ == nullptr) && (node_cur->right_ == nullptr))
+        if ((node_cur->getData()[0] != CHAR_SIGN) || (node_cur->getData()[len - 1] != CHAR_SIGN))
+        {
+            path2node_.Push(node_cur->getData());
+            return AKN_WRONG_SYNTAX_TREE_LEAF;
+        }
+        else;
+    else
+    if ((node_cur->left_ != nullptr) && (node_cur->right_ != nullptr))
+        if ((node_cur->getData()[0] != FEAT_SIGN) || (node_cur->getData()[len - 1] != FEAT_SIGN))
+        {
+            path2node_.Push(node_cur->getData());
+            return AKN_WRONG_SYNTAX_TREE_NODE;
+        }
+        else;
+    else
+    {
+        path2node_.Push(node_cur->getData());
+        return AKN_WRONG_TREE_ONE_CHILD;
+    }
+
+    int err = AKN_OK;
+
+    if (node_cur->right_ != nullptr)
+        err = checkBase(node_cur->right_);
+    state_ = err;
+
+    if (err)
+    {
+        path2node_.Push(node_cur->getData());
+        return err;
+    }
+
+    if (node_cur->left_ != nullptr)
+        err = checkBase(node_cur->left_);
+    state_ = err;
+
+    if (err) path2node_.Push(node_cur->getData());
+
+    return err;
 }
 
 //------------------------------------------------------------------------------
@@ -390,10 +440,19 @@ void Akinator::printGraphBase (const char* graphname)
     sprintf(command, "win_iconv -f 1251 -t UTF8 \"%s\" > \"new%s\"", graphname, graphname);
     system(command);
 
-    sprintf(command, "dot -Tpng -o BaseGraph.png new%s", graphname);
+    char* truename = new char[128] {};
+    strcpy(truename, graphname);
+
+    sprintf(command, "dot -Tpng -o %s.png new%s", GetTrueFileName((char*)truename), graphname);
     system(command);
 
-    system("start BaseGraph.png");
+    sprintf(command, "del new%s", graphname);
+    system(command);
+
+    sprintf(command, "start %s.png", truename);
+    system(command);
+
+    delete[] truename;
 }
 
 //------------------------------------------------------------------------------
@@ -403,16 +462,15 @@ void Akinator::printGraphNode (FILE* graph, Node<char*>* node_cur)
     assert(graph != nullptr);
 
     if (node_cur->right_ == nullptr && node_cur->left_ == nullptr)
-        fprintf(graph, "\t \"%s\" [shape = box, style = filled, color = black, fillcolor = orange]\n", node_cur->data_);
+        fprintf(graph, "\t \"%s\" [shape = box, style = filled, color = black, fillcolor = orange]\n", node_cur->getData());
     else
-        fprintf(graph, "\t \"%s\" [shape = box, style = filled, color = black, fillcolor = lightskyblue]\n", node_cur->data_);
+        fprintf(graph, "\t \"%s\" [shape = box, style = filled, color = black, fillcolor = lightskyblue]\n", node_cur->getData());
 
     if (node_cur->left_ != nullptr)
-        fprintf(graph, "\t \"%s\" -> \"%s\" [label=\"No\"]\n", node_cur->data_, node_cur->left_->data_);
+        fprintf(graph, "\t \"%s\" -> \"%s\" [label=\"No\"]\n", node_cur->getData(), node_cur->left_->getData());
 
     if (node_cur->right_ != nullptr)
-        fprintf(graph, "\t \"%s\" -> \"%s\" [label=\"Yes\"]\n", node_cur->data_, node_cur->right_->data_);
-
+        fprintf(graph, "\t \"%s\" -> \"%s\" [label=\"Yes\"]\n", node_cur->getData(), node_cur->right_->getData());
 
     if (node_cur->left_  != nullptr) printGraphNode(graph, node_cur->left_);
     if (node_cur->right_ != nullptr) printGraphNode(graph, node_cur->right_);
@@ -420,7 +478,7 @@ void Akinator::printGraphNode (FILE* graph, Node<char*>* node_cur)
 
 //------------------------------------------------------------------------------
 
-void AknPrintError (const char* logname, const char* file, int line, const char* function, int err)
+void Akinator::PrintError (const char* logname, const char* file, int line, const char* function, int err)
 {
     assert(function != nullptr);
     assert(logname  != nullptr);
@@ -438,10 +496,31 @@ void AknPrintError (const char* logname, const char* file, int line, const char*
     fprintf(log, "ERROR: file %s  line %d  function %s\n\n", file, line, function);
     fprintf(log, "%s\n", akn_errstr[err + 1]);
 
+    if (path2node_.getSize() != 0)
+    {
+        fprintf(log, "%s", path2node_.getName());
+        for (int i = path2node_.getSize() - 1; i > -1; --i)
+            fprintf(log, " -> [%s]", path2node_[i]);
+
+        fprintf(log, "\n");
+    }
+    fprintf(log, "You can look tree dump in %s\n", DUMP_PICT_NAME);
+    fclose(log);
+
+    ////
+
     printf (     "ERROR: file %s  line %d  function %s\n",   file, line, function);
     printf (     "%s\n\n", akn_errstr[err + 1]);
 
-    fclose(log);
+    if (path2node_.getSize() != 0)
+    {
+        printf("%s", path2node_.getName());
+        for (int i = path2node_.getSize() - 1; i > -1; --i)
+            printf(" -> [%s]", path2node_[i]);
+
+        printf("\n");
+    }
+    printf (     "You can look tree dump in %s\n", DUMP_PICT_NAME);
 }
 
 //------------------------------------------------------------------------------
