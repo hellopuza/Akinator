@@ -22,6 +22,7 @@ template <typename TYPE>
 Tree<TYPE>::Tree (char* tree_name) :
     name_      (tree_name),
     id_        (tree_id++),
+    path2node_ ((char*)"path to problem node"),
     errCode_   (TREE_OK)
 {
     root_ = new Node;
@@ -32,8 +33,9 @@ Tree<TYPE>::Tree (char* tree_name) :
 template <typename TYPE>
 Tree<TYPE>::Tree (char* tree_name, Node<TYPE>* root) :
     name_      (tree_name),
-    root_      (Node),
+    root_      (root),
     id_        (tree_id++),
+    path2node_ ((char*)"path to problem node"),
     errCode_   (TREE_OK)
 {
     TREE_CHECK;
@@ -45,6 +47,7 @@ template <typename TYPE>
 Tree<TYPE>::Tree (char* tree_name, char* base_filename) :
     name_      (tree_name),
     id_        (tree_id++),
+    path2node_ ((char*)"path to problem node"),
     errCode_   (TREE_OK)
 {
     TREE_ASSERTOK((tree_name == nullptr), TREE_WRONG_INPUT_TREE_NAME);
@@ -74,6 +77,31 @@ Tree<TYPE>::Tree (char* tree_name, char* base_filename) :
 //------------------------------------------------------------------------------
 
 template <typename TYPE>
+Tree<TYPE>::Tree (const Tree& obj)
+{
+    *this = obj;
+}
+
+//------------------------------------------------------------------------------
+
+template <typename TYPE>
+Tree<TYPE>& Tree<TYPE>::operator = (const Tree& obj)
+{
+    TREE_CHECK;
+
+    if (obj.root_ != nullptr)
+    {
+        if (root_ == nullptr) root_ = new Node<TYPE>;
+        *root_ = *obj.root_;
+    }
+    else root_ = nullptr;
+
+    return *this;
+}
+
+//------------------------------------------------------------------------------
+
+template <typename TYPE>
 Tree<TYPE>::~Tree ()
 {
     if (errCode_ == TREE_NOT_CONSTRUCTED) {}
@@ -83,6 +111,7 @@ Tree<TYPE>::~Tree ()
         if (root_ != nullptr)
             root_->~Node();
 
+        delete root_;
         root_ = nullptr;
 
         errCode_ = TREE_DESTRUCTED;
@@ -91,6 +120,64 @@ Tree<TYPE>::~Tree ()
     {
         TREE_ASSERTOK(TREE_DESTRUCTOR_REPEATED, TREE_DESTRUCTOR_REPEATED);
     }
+}
+
+//------------------------------------------------------------------------------
+
+template <typename TYPE>
+Node<TYPE>::Node (const Node& obj)
+{
+    *this = obj;
+}
+
+//------------------------------------------------------------------------------
+
+template <typename TYPE>
+Node<TYPE>& Node<TYPE>::operator = (const Node& obj)
+{
+    if constexpr (std::is_same<TYPE, char*>::value)
+        if (is_dynamic_)
+            delete [] data_;
+
+    if (obj.is_dynamic_)
+        if constexpr (std::is_same<TYPE, char*>::value)
+            data_ = new char[strlen(obj.data_) + 2] {};
+
+    copyType(data_, obj.data_);
+    is_dynamic_ = obj.is_dynamic_;
+
+    if (obj.right_ != nullptr)
+    {
+        if (right_ != nullptr) right_->~Node();
+        right_ = new Node<TYPE>;
+
+        *right_ = *obj.right_;
+        right_->prev_ = this;
+    }
+    else
+    {
+        if (right_ != nullptr) right_->~Node();
+        right_ = nullptr;
+    }
+    
+    if (obj.left_ != nullptr)
+    {
+        if (left_ != nullptr) left_->~Node();
+        left_ = new Node<TYPE>;
+
+        *left_ = *obj.left_;
+        left_->prev_ = this;
+    }
+    else
+    {
+        if (left_ != nullptr) left_->~Node();
+        left_ = nullptr;
+    }
+
+    if (prev_ == nullptr) depth_ = 0;
+    else depth_ = prev_->depth_ + 1;
+
+    return *this;
 }
 
 //------------------------------------------------------------------------------
@@ -114,7 +201,10 @@ Node<TYPE>::~Node ()
 
     prev_ = nullptr;
 
-    if (is_dynamic_) delete [] data_;
+    if constexpr (std::is_same<TYPE, char*>::value)
+        if (is_dynamic_)
+            delete [] data_;
+
     is_dynamic_ = false;
 
     data_ = POISON<TYPE>;
@@ -170,58 +260,6 @@ int Node<TYPE>::AddFromBase (const Text& base, size_t& line_cur)
 //------------------------------------------------------------------------------
 
 template <typename TYPE>
-void Tree<TYPE>::dCopy (const Tree& obj)
-{
-    TREE_CHECK;
-
-    if (obj.root_ != nullptr)
-    {
-        if (root_ == nullptr) root_ = new Node<TYPE>;
-        root_->dCopy(obj.root_);
-    }
-    else root_ = nullptr;
-}
-
-//------------------------------------------------------------------------------
-
-template <typename TYPE>
-void Node<TYPE>::dCopy (const Node& obj)
-{
-    assert(this != nullptr);
-
-    if (is_dynamic_)
-        delete [] data_;
-
-    if (obj.is_dynamic_)
-        if constexpr (std::is_same<TYPE, char*>::value)
-            data_ = new char[strlen(obj.data_) + 2] {};
-
-    copyType(data_, obj.data_);
-    is_dynamic_ = obj.is_dynamic_;
-
-    if (obj.right_ != nullptr)
-    {
-        if (right_ == nullptr) right_ = new Node<TYPE>;
-        right_->dCopy(obj.right_);
-        right_->right_ = this;
-    }
-    else right_ = nullptr;
-    
-    if (obj.left_ != nullptr)
-    {
-        if (left_ == nullptr) left_ = new Node<TYPE>;
-        left_->dCopy(obj.left_);
-        left_->prev_ = this;
-    }
-    else left_ = nullptr;
-
-    if (prev_ == nullptr) depth_ = 0;
-    else depth_ = prev_.depth + 1;
-}
-
-//------------------------------------------------------------------------------
-
-template <typename TYPE>
 void Tree<TYPE>::Dump (const char* dumpname)
 {
     FILE* dump = fopen(dumpname, "w");
@@ -256,23 +294,23 @@ void Node<TYPE>::Dump (FILE* dump)
 {
     assert(dump != nullptr);
     
-    fprintf(dump, "\t \"this: 0x%p\\n", this);
-    fprintf(dump, " prev: 0x%p\\n depth: %u\\n data: [", prev_, depth_);
+    fprintf(dump, "\t \"prev: 0x%p\\n", prev_);
+    fprintf(dump, " this: 0x%p\\n depth: %u\\n data: [", this, depth_);
     fprintf(dump, PRINT_FORMAT<TYPE>, data_);
     fprintf(dump, "]\\n left: 0x%p | right: 0x%p\\n", left_, right_);
     fprintf(dump, "\" [shape = box, style = filled, color = black, fillcolor = lightskyblue]\n");
 
     if (left_ != nullptr)
     {
-        fprintf(dump, "\t \"this: 0x%p\\n", this);
-        fprintf(dump, " prev: 0x%p\\n depth: %u\\n data: [", prev_, depth_);
+        fprintf(dump, "\t \"prev: 0x%p\\n", prev_);
+        fprintf(dump, " this: 0x%p\\n depth: %u\\n data: [", this, depth_);
         fprintf(dump, PRINT_FORMAT<TYPE>, data_);
         fprintf(dump, "]\\n left: 0x%p | right: 0x%p\\n", left_, right_);
 
         fprintf(dump, "\" -> \"");
 
-        fprintf(dump, "this: 0x%p\\n", left_);
-        fprintf(dump, " prev: 0x%p\\n depth: %u\\n data: [", left_->prev_, left_->depth_);
+        fprintf(dump, "prev: 0x%p\\n", left_->prev_);
+        fprintf(dump, " this: 0x%p\\n depth: %u\\n data: [", left_, left_->depth_);
         fprintf(dump, PRINT_FORMAT<TYPE>, left_->data_);
         fprintf(dump, "]\\n left: 0x%p | right: 0x%p\\n", left_->left_, left_->right_);
         fprintf(dump, "\" [label=\"left\"]\n");
@@ -280,15 +318,15 @@ void Node<TYPE>::Dump (FILE* dump)
 
     if (right_ != nullptr)
     {
-        fprintf(dump, "\t \"this: 0x%p\\n", this);
-        fprintf(dump, " prev: 0x%p\\n depth: %u\\n data: [", prev_, depth_);
+        fprintf(dump, "\t \"prev: 0x%p\\n", prev_);
+        fprintf(dump, " this: 0x%p\\n depth: %u\\n data: [", this, depth_);
         fprintf(dump, PRINT_FORMAT<TYPE>, data_);
         fprintf(dump, "]\\n left: 0x%p | right: 0x%p\\n", left_, right_);
 
         fprintf(dump, "\" -> \"");
 
-        fprintf(dump, "this: 0x%p\\n", right_);
-        fprintf(dump, " prev: 0x%p\\n depth: %u\\n data: [", right_->prev_, right_->depth_);
+        fprintf(dump, "prev: 0x%p\\n", right_->prev_);
+        fprintf(dump, " this: 0x%p\\n depth: %u\\n data: [", right_, right_->depth_);
         fprintf(dump, PRINT_FORMAT<TYPE>, right_->data_);
         fprintf(dump, "]\\n left: 0x%p | right: 0x%p\\n", right_->left_, right_->right_);
         fprintf(dump, "\" [label=\"right\"]\n");
@@ -353,11 +391,9 @@ void Node<TYPE>::Write (FILE* base)
 template <typename TYPE>
 void Node<TYPE>::setData (TYPE data)
 {
-    if (is_dynamic_)
-    {
-        is_dynamic_ = false;
-        delete [] data_;
-    }
+    if constexpr (std::is_same<TYPE, char*>::value)
+        if (is_dynamic_)
+            delete [] data_;
 
     if constexpr (std::is_same<TYPE, char*>::value)
     {
@@ -388,6 +424,23 @@ void Node<TYPE>::recountDepth ()
 
     if (right_ != nullptr) right_->recountDepth();
     if (left_  != nullptr) left_->recountDepth();
+}
+
+//------------------------------------------------------------------------------
+
+template <typename TYPE>
+void Node<TYPE>::recountPrev ()
+{
+    if (right_ != nullptr)
+    {
+        right_->prev_ = this;
+        right_->recountPrev();
+    }
+    if (left_  != nullptr)
+    {
+        left_->prev_ = this;
+        left_->recountPrev();
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -443,7 +496,7 @@ int Tree<TYPE>::Check ()
     int err = TREE_OK;
 
     if (root_ != nullptr)
-        err = root_->Check(this);
+        err = root_->Check(*this);
 
     errCode_ = err;
 
@@ -453,12 +506,12 @@ int Tree<TYPE>::Check ()
 //------------------------------------------------------------------------------
 
 template <typename TYPE>
-int Node<TYPE>::Check (Tree<TYPE>* tree)
+int Node<TYPE>::Check (Tree<TYPE>& tree)
 {
     if (((prev_ == nullptr) && (depth_ != 0)) ||
         ((prev_ != nullptr) && (depth_ != prev_->depth_ + 1)))
     {
-        tree->path2node_.Push(data_);
+        tree.path2node_.Push(data_);
         return TREE_WRONG_DEPTH;
     }
 
@@ -466,21 +519,21 @@ int Node<TYPE>::Check (Tree<TYPE>* tree)
         if ((prev_->right_ != this) &&
             (prev_->left_ != this))
         {
-            tree->path2node_.Push(data_);
+            tree.path2node_.Push(data_);
             return TREE_WRONG_PREV_NODE;
         }
 
     if (right_ != nullptr)
         if (right_->prev_ != this)
         {
-            tree->path2node_.Push(data_);
+            tree.path2node_.Push(data_);
             return TREE_WRONG_PREV_NODE;
         }
 
     if (left_ != nullptr)
         if (left_->prev_ != this)
         {
-            tree->path2node_.Push(data_);
+            tree.path2node_.Push(data_);
             return TREE_WRONG_PREV_NODE;
         }
 
@@ -491,14 +544,14 @@ int Node<TYPE>::Check (Tree<TYPE>* tree)
 
     if (err)
     {
-        tree->path2node_.Push(data_);
+        tree.path2node_.Push(data_);
         return err;
     }
 
     if (left_ != nullptr)
         err = left_->Check(tree);
 
-    if (err) tree->path2node_.Push(data_);
+    if (err) tree.path2node_.Push(data_);
 
     return err;
 }
@@ -542,7 +595,7 @@ void Tree<TYPE>::PrintError (const char* logname, const char* file, int line, co
 
         fprintf(log, "\n");
     }
-    fprintf(log, "You can look tree dump in %s\n", DUMP_PICT_NAME);
+    if (err != TREE_WRONG_SYNTAX_INPUT_BASE) fprintf(log, "You can look tree dump in %s\n\n", DUMP_PICT_NAME);
     fclose(log);
 
     ////
@@ -562,7 +615,7 @@ void Tree<TYPE>::PrintError (const char* logname, const char* file, int line, co
 
         printf("\n");
     }
-    printf (     "You can look tree dump in %s\n", DUMP_PICT_NAME);
+    if (err != TREE_WRONG_SYNTAX_INPUT_BASE) printf (     "You can look tree dump in %s\n\n", DUMP_PICT_NAME);
 }
 
 //------------------------------------------------------------------------------

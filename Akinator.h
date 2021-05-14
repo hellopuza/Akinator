@@ -76,15 +76,15 @@ static const char* akn_errstr[] =
 
 static const char* AKINATOR_LOGNAME = "akinator.log";
 
-#define BASE_CHECK if (tree_.Check ())                              \
-                   {                                                \
-                     tree_.Dump();                                  \
+#define BASE_CHECK if (tree_.Check ())                                                                    \
+                   {                                                                                      \
+                     tree_.Dump();                                                                        \
                      tree_.PrintError (TREE_LOGNAME , __FILE__, __LINE__, __FUNC_NAME__, tree_.errCode_); \
-                     exit(tree_.errCode_);                          \
-                   }                                                \
-                   if (checkBase (tree_.root_))                     \
-                   {                                                \
-                     AKN_ASSERTOK(state_, state_);                  \
+                     exit(tree_.errCode_);                                                                \
+                   }                                                                                      \
+                   if (checkBase (tree_.root_))                                                           \
+                   {                                                                                      \
+                     AKN_ASSERTOK(state_, state_);                                                        \
                    }
 
 #define AKN_ASSERTOK(cond, err) if (cond)                                                               \

@@ -524,4 +524,3 @@ void Akinator::PrintError (const char* logname, const char* file, int line, cons
 }
 
 //------------------------------------------------------------------------------
-

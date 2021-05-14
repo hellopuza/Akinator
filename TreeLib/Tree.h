@@ -52,6 +52,8 @@ static int tree_id = 0;
 #define newTree_base(NAME, base, STK_TYPE) \
         Tree<STK_TYPE> NAME ((char*)#NAME, base);
 
+template <typename TYPE>
+class Tree;
 
 template <typename TYPE>
 struct Node
@@ -73,13 +75,15 @@ public:
     size_t depth_ = 0;
 
 //------------------------------------------------------------------------------
-/*! @brief   Tree default constructor.
+/*! @brief   Node default constructor.
 */
 
     Node ();
 
 //------------------------------------------------------------------------------
-/*! @brief   Recursive tree destruction.
+/*! @brief   Recursive node destruction.
+ *
+ *  @note    All nodes must be created by operator new!!!
  */
 
     ~Node ();
@@ -107,12 +111,20 @@ public:
     void recountDepth ();
 
 //------------------------------------------------------------------------------
-/*! @brief   Node deep copy constructor.
+/*! @brief   Recursive previous node pointers recount.
+ */
+
+    void recountPrev ();
+
+//------------------------------------------------------------------------------
+/*! @brief   Node copy constructor.
  *
  *  @param   obj         Source node
  */
 
-    void dCopy (const Node& obj);
+    Node (const Node& obj);
+
+    Node& operator = (const Node& obj);
 
 private:
 
@@ -126,16 +138,6 @@ private:
  */
 
     int AddFromBase (const Text& base, size_t& line_cur);
-
-//------------------------------------------------------------------------------
-/*! @brief   Node copy constructor (deleted).
- *
- *  @param   obj         Source node
- */
-
-    Node (const Node& obj);
-
-    Node& operator = (const Node& obj); // deleted
 
 //------------------------------------------------------------------------------
 /*! @brief   Recursive tree writing to file.
@@ -164,7 +166,7 @@ private:
  *  @return  error code
  */
 
-    int Check (Tree<TYPE>* tree);
+    int Check (Tree<TYPE>& tree);
 
 //------------------------------------------------------------------------------
 /*! @brief   Recursive print the contents of the tree like a graphviz dot file.
@@ -232,22 +234,14 @@ public:
    ~Tree ();
 
 //------------------------------------------------------------------------------
-/*! @brief   Tree copy constructor (deleted).
+/*! @brief   Tree copy constructor.
  *
  *  @param   obj         Source tree
  */
 
     Tree (const Tree& obj);
 
-    Tree& operator = (const Tree& obj); // deleted
-
-//------------------------------------------------------------------------------
-/*! @brief   Tree deep copy constructor.
- *
- *  @param   obj         Source tree
- */
-
-    void dCopy (const Tree& obj);
+    Tree& operator = (const Tree& obj);
 
 //------------------------------------------------------------------------------
 /*! @brief   Print the contents of the tree like a graphviz dot file.

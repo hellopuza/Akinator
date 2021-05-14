@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
 #endif // _WIN32
 
     Akinator akn;
-    
+
     if (argc == 1)
     {
         Akinator akn;
