@@ -26,7 +26,8 @@
 
 #endif
 
-
+#define TX_USE_SPEAK
+#include "TXLib.h"
 
 #include "StringLib/StringLib.h"
 #include "StackLib/Stack.h"
@@ -117,7 +118,7 @@ private:
     char* filename_ = (char*)DEFAULT_BASENAME;
 
     Tree<char*> tree_;
-    Stack<char*> path2node_;
+    Stack<char*> path2badnode_;
 
 public:
 
@@ -136,7 +137,7 @@ public:
     Akinator (char* filename);
 
 //------------------------------------------------------------------------------
-/*! @brief   Assembler copy constructor (deleted).
+/*! @brief   Akinator copy constructor (deleted).
  *
  *  @param   obj         Source akinator
  */
@@ -195,7 +196,7 @@ private:
  *  @param   start       Start of the range
  *  @param   end         End of the range
  *
- *  @return  int number
+ *  @return  integer number
  */
 
     int scanNum (int start, int end);
@@ -210,6 +211,8 @@ private:
 
 //------------------------------------------------------------------------------
 /*! @brief   Get character name from stdin.
+ * 
+ *  @param   c           Character to insert to begin and end of character name
  *
  *  @return  character name
  */

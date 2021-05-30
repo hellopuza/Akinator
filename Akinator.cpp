@@ -13,9 +13,9 @@
 //------------------------------------------------------------------------------
 
 Akinator::Akinator () :
-    tree_      ((char*)"default", (char*)DEFAULT_BASE_NAME),
-    path2node_ ((char*)"path to problem node"),
-    state_     (AKN_OK)
+    tree_         ((char*)"default", (char*)DEFAULT_BASE_NAME),
+    path2badnode_ ((char*)"path to problem node"),
+    state_        (AKN_OK)
 {
     BASE_CHECK;
 }
@@ -23,10 +23,10 @@ Akinator::Akinator () :
 //------------------------------------------------------------------------------
 
 Akinator::Akinator (char* filename) :
-    tree_      (filename, filename),
-    path2node_ ((char*)"path2node_"),
-    filename_  (filename),
-    state_     (AKN_OK)
+    tree_         (filename, filename),
+    path2badnode_ ((char*)"path to problem node"),
+    filename_     (filename),
+    state_        (AKN_OK)
 {
     BASE_CHECK;
 }
@@ -115,14 +115,14 @@ int Akinator::Guessing ()
         }
         else AKN_ASSERTOK(AKN_INCORRECT_INPUT_SYNTAX_BASE, AKN_INCORRECT_INPUT_SYNTAX_BASE);
 
-        printf("\nВаш персонаж - %s\n", question);
+        txSpeak ("\v\nВаш персонаж - %s\n", question);
         printf("Answer [Y/n]? ");
 
         if (scanAns())
         {
             if (isAns)
             {
-                printf("\nЯ угадал!\n");
+                txSpeak ("\v\nЯ угадал!\n");
                 return AKN_OK;
             }
             
@@ -132,8 +132,8 @@ int Akinator::Guessing ()
         {
             if (isAns)
             {
-                printf("\nЯ не угадал\n");
-                printf("Пожалуйста дополните мою базу правильным ответом\n");
+                txSpeak ("\v\nЯ не угадал\n");
+                txSpeak ("\vПожалуйста дополните мою базу правильным ответом\n");
 
                 addAns(node_cur);
                 return AKN_OK;
@@ -150,18 +150,18 @@ int Akinator::Guessing ()
 
 int Akinator::CharFind ()
 {
-    printf("Введите персонажа, о котором хотите узнать: ");
+    txSpeak ("\vВведите персонажа, о котором хотите узнать: ");
     char* charname = scanChar(CHAR_SIGN);
 
     newStack(path, size_t);
     bool found = tree_.findPath(path, charname);
     if (not found)
     {
-        printf("Такой персонаж не найден\n");
+        txSpeak ("\vТакой персонаж не найден\n");
         return AKN_OK;
     }
 
-    printf("%s\b - ", charname + 1);
+    txSpeak ("\v%s\b - ", charname + 1);
     delete [] charname;
 
     for (int i = 0; i < path.getSize() - 1; ++i)
@@ -176,25 +176,25 @@ int Akinator::CharFind ()
 
 int Akinator::CharCmp ()
 {
-    printf("Введите первого персонажа, которого хотите сравнить: ");
+    txSpeak ("\vВведите первого персонажа, которого хотите сравнить: ");
     char* char1 = scanChar(CHAR_SIGN);
 
     newStack(path1, size_t);
     bool found = tree_.findPath(path1, char1);
     if (not found)
     {
-        printf("Такой персонаж не найден\n");
+        txSpeak ("\vТакой персонаж не найден\n");
         return AKN_OK;
     }
 
-    printf("Введите второго персонажа, которого хотите сравнить: ");
+    txSpeak ("\vВведите второго персонажа, которого хотите сравнить: ");
     char* char2 = scanChar(CHAR_SIGN);
 
     newStack(path2, size_t);
     found = tree_.findPath(path2, char2);
     if (not found)
     {
-        printf("Такой персонаж не найден\n");
+        txSpeak ("\vТакой персонаж не найден\n");
         return AKN_OK;
     }
 
@@ -202,10 +202,10 @@ int Akinator::CharCmp ()
     size_t i2 = 0;
 
     if ((Node<char*>*)path1[i1 + 1] != (Node<char*>*)path2[i2 + 1])
-        printf("\n%s\b и %s\b ничем не схожи", char1 + 1, char2 + 1);
+        txSpeak ("\v\n%s\b и %s\b ничем не схожи", char1 + 1, char2 + 1);
     else
     {
-        printf("\n%s\b и %s\b схожи тем, что ", char1 + 1, char2 + 1);
+        txSpeak ("\v\n%s\b и %s\b схожи тем, что ", char1 + 1, char2 + 1);
         while (((Node<char*>*)path1[i1 + 1] == (Node<char*>*)path2[i2 + 1]) && (i1 < path1.getSize() - 1) && (i2 < path2.getSize() - 1))
         {
             printFeature(path1, i1);
@@ -216,13 +216,13 @@ int Akinator::CharCmp ()
     }
     printf("\n");
 
-    printf("но %s\b отличается тем, что ", char1 + 1);
+    txSpeak ("\vно %s\b отличается тем, что ", char1 + 1);
     for (; i1 < path1.getSize() - 1; ++i1)
         printFeature(path1, i1);
 
     printf(",\n");
 
-    printf("a %s\b отличается тем, что ", char2 + 1);
+    txSpeak ("\va %s\b отличается тем, что ", char2 + 1);
     for (; i2 < path2.getSize() - 1; ++i2)
         printFeature(path2, i2);
 
@@ -283,7 +283,7 @@ char* Akinator::scanChar (char c)
     char* charname = new char [MAX_STR_LEN] {};
     charname[0] = c;
 
-    for (char* err = fgets(charname + 1, MAX_STR_LEN - 2, stdin); !err; printf("Try again [Y/n]? "));
+    fgets(charname + 1, MAX_STR_LEN - 2, stdin);
     size_t len = strlen(charname);
     assert(len);
     charname[len - 1] = c;
@@ -296,11 +296,11 @@ char* Akinator::scanChar (char c)
 inline void Akinator::printFeature (const Stack<size_t>& path, size_t item)
 {
     if (((Node<char*>*)path[item])->left_ == (Node<char*>*)path[item + 1])
-        printf("не ");
+        txSpeak ("\vне ");
     else if (((Node<char*>*)path[item])->right_ != (Node<char*>*)path[item + 1])
         assert(0);
 
-    printf("%s\b", ((Node<char*>*)path[item])->getData() + 1);
+    txSpeak ("\v%s\b", ((Node<char*>*)path[item])->getData() + 1);
     if (item != path.getSize() - 2) printf(", ");
 }
 
@@ -310,13 +310,13 @@ int Akinator::addAns (Node<char*>* node_cur)
 {
     assert(node_cur != nullptr);
 
-    printf("Введите вашего персонажа: ");
+    txSpeak ("\vВведите вашего персонажа: ");
     char* newchar = scanChar(CHAR_SIGN);
 
     newStack(path, size_t);
     if (tree_.findPath(path, newchar))
     {
-        printf("Такой персонаж уже есть: %s\b - ", newchar + 1);
+        txSpeak ("\vТакой персонаж уже есть: %s\b - ", newchar + 1);
         for (int i = 0; i < path.getSize() - 1; ++i)
             printFeature(path, i);
         printf(".\n");
@@ -328,7 +328,7 @@ int Akinator::addAns (Node<char*>* node_cur)
     strcpy(oldchar, node_cur->getData() + 1);
     oldchar[strlen(oldchar) - 1] = '\0';
 
-    printf("Введите признак отличающий %s от %s: ", newchar, oldchar);
+    txSpeak ("\vВведите признак отличающий %s от %s: ", newchar, oldchar);
     char* feature = scanChar(FEAT_SIGN);
 
     Node<char*>* prevNode = node_cur->prev_;
@@ -360,7 +360,7 @@ int Akinator::addAns (Node<char*>* node_cur)
 
     featureNode->recountDepth();
 
-    printf("\nСохранить в базу?\n");
+    txSpeak ("\v\nСохранить в базу?\n");
     printf("Answer [Y/n]? ");
     if (scanAns())
         tree_.Write(filename_);
@@ -379,7 +379,7 @@ int Akinator::checkBase (Node<char*>* node_cur)
     if ((node_cur->left_ == nullptr) && (node_cur->right_ == nullptr))
         if ((node_cur->getData()[0] != CHAR_SIGN) || (node_cur->getData()[len - 1] != CHAR_SIGN))
         {
-            path2node_.Push(node_cur->getData());
+            path2badnode_.Push(node_cur->getData());
             return AKN_WRONG_SYNTAX_TREE_LEAF;
         }
         else;
@@ -387,13 +387,13 @@ int Akinator::checkBase (Node<char*>* node_cur)
     if ((node_cur->left_ != nullptr) && (node_cur->right_ != nullptr))
         if ((node_cur->getData()[0] != FEAT_SIGN) || (node_cur->getData()[len - 1] != FEAT_SIGN))
         {
-            path2node_.Push(node_cur->getData());
+            path2badnode_.Push(node_cur->getData());
             return AKN_WRONG_SYNTAX_TREE_NODE;
         }
         else;
     else
     {
-        path2node_.Push(node_cur->getData());
+        path2badnode_.Push(node_cur->getData());
         return AKN_WRONG_TREE_ONE_CHILD;
     }
 
@@ -405,7 +405,7 @@ int Akinator::checkBase (Node<char*>* node_cur)
 
     if (err)
     {
-        path2node_.Push(node_cur->getData());
+        path2badnode_.Push(node_cur->getData());
         return err;
     }
 
@@ -413,7 +413,7 @@ int Akinator::checkBase (Node<char*>* node_cur)
         err = checkBase(node_cur->left_);
     state_ = err;
 
-    if (err) path2node_.Push(node_cur->getData());
+    if (err) path2badnode_.Push(node_cur->getData());
 
     return err;
 }
@@ -496,11 +496,11 @@ void Akinator::PrintError (const char* logname, const char* file, int line, cons
     fprintf(log, "ERROR: file %s  line %d  function %s\n\n", file, line, function);
     fprintf(log, "%s\n", akn_errstr[err + 1]);
 
-    if (path2node_.getSize() != 0)
+    if (path2badnode_.getSize() != 0)
     {
-        fprintf(log, "%s", path2node_.getName());
-        for (int i = path2node_.getSize() - 1; i > -1; --i)
-            fprintf(log, " -> [%s]", path2node_[i]);
+        fprintf(log, "%s", path2badnode_.getName());
+        for (int i = path2badnode_.getSize() - 1; i > -1; --i)
+            fprintf(log, " -> [%s]", path2badnode_[i]);
 
         fprintf(log, "\n");
     }
@@ -512,11 +512,11 @@ void Akinator::PrintError (const char* logname, const char* file, int line, cons
     printf (     "ERROR: file %s  line %d  function %s\n",   file, line, function);
     printf (     "%s\n\n", akn_errstr[err + 1]);
 
-    if (path2node_.getSize() != 0)
+    if (path2badnode_.getSize() != 0)
     {
-        printf("%s", path2node_.getName());
-        for (int i = path2node_.getSize() - 1; i > -1; --i)
-            printf(" -> [%s]", path2node_[i]);
+        printf("%s", path2badnode_.getName());
+        for (int i = path2badnode_.getSize() - 1; i > -1; --i)
+            printf(" -> [%s]", path2badnode_[i]);
 
         printf("\n");
     }

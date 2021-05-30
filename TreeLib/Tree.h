@@ -191,7 +191,7 @@ public:
     int id_ = 0;
     int errCode_;
 
-    Stack<TYPE> path2node_;
+    Stack<TYPE> path2badnode_;
 
 public:
 
@@ -242,6 +242,12 @@ public:
     Tree (const Tree& obj);
 
     Tree& operator = (const Tree& obj);
+
+//------------------------------------------------------------------------------
+/*! @brief   Clean tree.
+ */
+
+    void Clean ();
 
 //------------------------------------------------------------------------------
 /*! @brief   Print the contents of the tree like a graphviz dot file.

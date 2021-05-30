@@ -20,23 +20,22 @@ Tree<TYPE>::Tree () : errCode_ (TREE_NOT_CONSTRUCTED) { }
 
 template <typename TYPE>
 Tree<TYPE>::Tree (char* tree_name) :
-    name_      (tree_name),
-    id_        (tree_id++),
-    path2node_ ((char*)"path to problem node"),
-    errCode_   (TREE_OK)
-{
-    root_ = new Node;
-}
+    name_         (tree_name),
+    id_           (tree_id++),
+    root_         (nullptr),
+    path2badnode_ ((char*)"path to problem node"),
+    errCode_      (TREE_OK)
+{}
 
 //------------------------------------------------------------------------------
 
 template <typename TYPE>
 Tree<TYPE>::Tree (char* tree_name, Node<TYPE>* root) :
-    name_      (tree_name),
-    root_      (root),
-    id_        (tree_id++),
-    path2node_ ((char*)"path to problem node"),
-    errCode_   (TREE_OK)
+    name_         (tree_name),
+    root_         (root),
+    id_           (tree_id++),
+    path2badnode_ ((char*)"path to problem node"),
+    errCode_      (TREE_OK)
 {
     TREE_CHECK;
 }
@@ -45,10 +44,10 @@ Tree<TYPE>::Tree (char* tree_name, Node<TYPE>* root) :
 
 template <typename TYPE>
 Tree<TYPE>::Tree (char* tree_name, char* base_filename) :
-    name_      (tree_name),
-    id_        (tree_id++),
-    path2node_ ((char*)"path to problem node"),
-    errCode_   (TREE_OK)
+    name_         (tree_name),
+    id_           (tree_id++),
+    path2badnode_ ((char*)"path to problem node"),
+    errCode_      (TREE_OK)
 {
     TREE_ASSERTOK((tree_name == nullptr), TREE_WRONG_INPUT_TREE_NAME);
 
@@ -109,16 +108,30 @@ Tree<TYPE>::~Tree ()
     else if (errCode_ != TREE_DESTRUCTED)
     {
         if (root_ != nullptr)
+        {
             root_->~Node();
-
-        delete root_;
-        root_ = nullptr;
+            delete root_;
+            root_ = nullptr;
+        }
 
         errCode_ = TREE_DESTRUCTED;
     }
     else
     {
         TREE_ASSERTOK(TREE_DESTRUCTOR_REPEATED, TREE_DESTRUCTOR_REPEATED);
+    }
+}
+
+//------------------------------------------------------------------------------
+
+template <typename TYPE>
+void Tree<TYPE>::Clean ()
+{
+    if (root_ != nullptr)
+    {
+        root_->~Node();
+        delete root_;
+        root_ = nullptr;
     }
 }
 
@@ -296,7 +309,7 @@ void Node<TYPE>::Dump (FILE* dump)
     
     fprintf(dump, "\t \"prev: 0x%p\\n", prev_);
     fprintf(dump, " this: 0x%p\\n depth: %u\\n data: [", this, depth_);
-    fprintf(dump, PRINT_FORMAT<TYPE>, data_);
+    TypePrint(dump, data_);
     fprintf(dump, "]\\n left: 0x%p | right: 0x%p\\n", left_, right_);
     fprintf(dump, "\" [shape = box, style = filled, color = black, fillcolor = lightskyblue]\n");
 
@@ -304,14 +317,14 @@ void Node<TYPE>::Dump (FILE* dump)
     {
         fprintf(dump, "\t \"prev: 0x%p\\n", prev_);
         fprintf(dump, " this: 0x%p\\n depth: %u\\n data: [", this, depth_);
-        fprintf(dump, PRINT_FORMAT<TYPE>, data_);
+        TypePrint(dump, data_);
         fprintf(dump, "]\\n left: 0x%p | right: 0x%p\\n", left_, right_);
 
         fprintf(dump, "\" -> \"");
 
         fprintf(dump, "prev: 0x%p\\n", left_->prev_);
         fprintf(dump, " this: 0x%p\\n depth: %u\\n data: [", left_, left_->depth_);
-        fprintf(dump, PRINT_FORMAT<TYPE>, left_->data_);
+        TypePrint(dump, left_->data_);
         fprintf(dump, "]\\n left: 0x%p | right: 0x%p\\n", left_->left_, left_->right_);
         fprintf(dump, "\" [label=\"left\"]\n");
     }
@@ -320,14 +333,14 @@ void Node<TYPE>::Dump (FILE* dump)
     {
         fprintf(dump, "\t \"prev: 0x%p\\n", prev_);
         fprintf(dump, " this: 0x%p\\n depth: %u\\n data: [", this, depth_);
-        fprintf(dump, PRINT_FORMAT<TYPE>, data_);
+        TypePrint(dump, data_);
         fprintf(dump, "]\\n left: 0x%p | right: 0x%p\\n", left_, right_);
 
         fprintf(dump, "\" -> \"");
 
         fprintf(dump, "prev: 0x%p\\n", right_->prev_);
         fprintf(dump, " this: 0x%p\\n depth: %u\\n data: [", right_, right_->depth_);
-        fprintf(dump, PRINT_FORMAT<TYPE>, right_->data_);
+        TypePrint(dump, right_->data_);
         fprintf(dump, "]\\n left: 0x%p | right: 0x%p\\n", right_->left_, right_->right_);
         fprintf(dump, "\" [label=\"right\"]\n");
     }
@@ -360,7 +373,7 @@ void Node<TYPE>::Write (FILE* base)
     assert(base != nullptr);
 
     for (int i = 0; i <= depth_; ++i) fprintf(base, "    ");
-    fprintf(base, PRINT_FORMAT<TYPE>, data_);
+    TypePrint(base, data_);
     fprintf(base, "\n");
 
     if (right_ != nullptr)
@@ -392,11 +405,10 @@ template <typename TYPE>
 void Node<TYPE>::setData (TYPE data)
 {
     if constexpr (std::is_same<TYPE, char*>::value)
+    {
         if (is_dynamic_)
             delete [] data_;
 
-    if constexpr (std::is_same<TYPE, char*>::value)
-    {
         data_ = new char [strlen(data) + 2] {};
         is_dynamic_ = true;
     }
@@ -417,6 +429,8 @@ const TYPE& Node<TYPE>::getData ()
 template <typename TYPE>
 void Node<TYPE>::recountDepth ()
 {
+    assert(this != nullptr);
+
     if (prev_ == nullptr)
         depth_ = 0;
     else
@@ -431,6 +445,8 @@ void Node<TYPE>::recountDepth ()
 template <typename TYPE>
 void Node<TYPE>::recountPrev ()
 {
+    assert(this != nullptr);
+
     if (right_ != nullptr)
     {
         right_->prev_ = this;
@@ -511,7 +527,7 @@ int Node<TYPE>::Check (Tree<TYPE>& tree)
     if (((prev_ == nullptr) && (depth_ != 0)) ||
         ((prev_ != nullptr) && (depth_ != prev_->depth_ + 1)))
     {
-        tree.path2node_.Push(data_);
+        tree.path2badnode_.Push(data_);
         return TREE_WRONG_DEPTH;
     }
 
@@ -519,21 +535,21 @@ int Node<TYPE>::Check (Tree<TYPE>& tree)
         if ((prev_->right_ != this) &&
             (prev_->left_ != this))
         {
-            tree.path2node_.Push(data_);
+            tree.path2badnode_.Push(data_);
             return TREE_WRONG_PREV_NODE;
         }
 
     if (right_ != nullptr)
         if (right_->prev_ != this)
         {
-            tree.path2node_.Push(data_);
+            tree.path2badnode_.Push(data_);
             return TREE_WRONG_PREV_NODE;
         }
 
     if (left_ != nullptr)
         if (left_->prev_ != this)
         {
-            tree.path2node_.Push(data_);
+            tree.path2badnode_.Push(data_);
             return TREE_WRONG_PREV_NODE;
         }
 
@@ -544,14 +560,14 @@ int Node<TYPE>::Check (Tree<TYPE>& tree)
 
     if (err)
     {
-        tree.path2node_.Push(data_);
+        tree.path2badnode_.Push(data_);
         return err;
     }
 
     if (left_ != nullptr)
         err = left_->Check(tree);
 
-    if (err) tree.path2node_.Push(data_);
+    if (err) tree.path2badnode_.Push(data_);
 
     return err;
 }
@@ -583,13 +599,13 @@ void Tree<TYPE>::PrintError (const char* logname, const char* file, int line, co
     fprintf(log, "ERROR: file %s  line %d  function %s\n\n", file, line, function);
     fprintf(log, "%s\n", tree_errstr[err + 1]);
 
-    if (path2node_.getSize() != 0)
+    if (path2badnode_.getSize() != 0)
     {
-        fprintf(log, "%s", path2node_.getName());
-        for (int i = path2node_.getSize() - 1; i > -1; --i)
+        fprintf(log, "%s", path2badnode_.getName());
+        for (int i = path2badnode_.getSize() - 1; i > -1; --i)
         {
             fprintf(log, " -> [");
-            fprintf(log, PRINT_FORMAT<TYPE>, path2node_[i]);
+            TypePrint(log, path2badnode_[i]);
             fprintf(log, "]");
         }
 
@@ -603,13 +619,13 @@ void Tree<TYPE>::PrintError (const char* logname, const char* file, int line, co
     printf("ERROR: file %s  line %d  function %s\n", file, line, function);
     printf("%s\n\n", tree_errstr[err + 1]);
 
-    if (path2node_.getSize() != 0)
+    if (path2badnode_.getSize() != 0)
     {
-        printf("%s", path2node_.getName());
-        for (int i = path2node_.getSize() - 1; i > -1; --i)
+        printf("%s", path2badnode_.getName());
+        for (int i = path2badnode_.getSize() - 1; i > -1; --i)
         {
             printf(" -> [");
-            printf(PRINT_FORMAT<TYPE>, path2node_[i]);
+            TypePrint(stdout, path2badnode_[i]);
             printf("]");
         }
 
