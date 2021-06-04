@@ -86,14 +86,14 @@ static const char* AKINATOR_LOGNAME = "akinator.log";
                    if (checkBase (tree_.root_))                                                           \
                    {                                                                                      \
                      AKN_ASSERTOK(state_, state_);                                                        \
-                   }
+                   } //
 
 #define AKN_ASSERTOK(cond, err) if (cond)                                                               \
                                 {                                                                       \
                                   PrintError(AKINATOR_LOGNAME, __FILE__, __LINE__, __FUNC_NAME__, err); \
                                   tree_.Dump();                                                         \
-                                  exit(err); /**/                                                       \
-                                }
+                                  exit(err);                                                            \
+                                } //
 
 
 //==============================================================================
