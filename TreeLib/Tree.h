@@ -6,7 +6,7 @@
     * Author:      Artem Puzankov                                              *
     * Email:       puzankov.ao@phystech.edu                                    *
     * GitHub:      https://github.com/hellopuza                                *
-    * Copyright © 2021 Artem Puzankov. All rights reserved.                    *
+    * Copyright Â© 2021 Artem Puzankov. All rights reserved.                    *
     *///------------------------------------------------------------------------
 
 #ifndef TREE_H_INCLUDED
@@ -28,18 +28,27 @@
 #include <new>
 
 
-#define TREE_CHECK if (Check ())                        \
-                   {                                    \
-                     Dump(DUMP_NAME);                   \
-                     TREE_ASSERTOK(errCode_, errCode_); \
+#define TREE_CHECK if (Check ())                            \
+                   {                                        \
+                     Dump(DUMP_NAME);                       \
+                     TREE_ASSERTOK(errCode_, errCode_, -1); \
                    } //
 
 
-#define TREE_ASSERTOK(cond, err) if (cond)                                                            \
-                                 {                                                                    \
-                                   PrintError(TREE_LOGNAME , __FILE__, __LINE__, __FUNC_NAME__, err); \
-                                   exit(err);                                                         \
-                                 } //
+#define TREE_ASSERTOK(cond, err, line) if (cond)                                                                  \
+                                       {                                                                          \
+                                         PrintError(TREE_LOGNAME , __FILE__, __LINE__, __FUNC_NAME__, err, line); \
+                                         exit(err);                                                               \
+                                       } //
+
+#define CHECK_BRACKET(lines_arr, line, bracket)          \
+        (                                                \
+          (lines_arr[line].str[0] != bracket) ||         \
+          (                                              \
+              (not isspace(base.lines_[line].str[1])) && \
+              (base.lines_[line].str[1] != '\0')         \
+          )                                              \
+        ) //
 
 static int tree_id = 0;
 
@@ -290,11 +299,11 @@ public:
  *  @param   file        Name of the file from which this function was called
  *  @param   line        Line of the code from which this function was called
  *  @param   function    Name of the function from which this function was called
- *
- *  @return  error code
+ *  @param   err         Error code
+ *  @param   errline     Number of base line with error
  */
 
-    void PrintError (const char* logname, const char* file, int line, const char* function, int err);
+    void PrintError (const char* logname, const char* file, int line, const char* function, int err, int errline);
 
 //------------------------------------------------------------------------------
 /*! @brief   Prints a section of base text with an error to the console and to the log file.
@@ -304,7 +313,7 @@ public:
  *  @param   logname     Name of the log file
  */
 
-    void PrintCode (Text& base, size_t line, const char* logname);
+    void PrintBase (Text& base, size_t line, const char* logname);
 
 //------------------------------------------------------------------------------
 };

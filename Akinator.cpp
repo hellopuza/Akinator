@@ -5,7 +5,7 @@
     * Author:      Artem Puzankov                                              *
     * Email:       puzankov.ao@phystech.edu                                    *
     * GitHub:      https://github.com/hellopuza                                *
-    * Copyright © 2021 Artem Puzankov. All rights reserved.                    *
+    * Copyright В© 2021 Artem Puzankov. All rights reserved.                    *
     *///------------------------------------------------------------------------
 
 #include "Akinator.h"
@@ -58,15 +58,16 @@ int Akinator::Run ()
     {
         BASE_CHECK;
     
-        printf("\nChoose a gamemode please:\n");
-        printf("\t[1]: Guessing a character\n");
-        printf("\t[2]: Find a character\n");
-        printf("\t[3]: Character comparison\n");
-        printf("\t[4]: View the base\n");
-        printf("\t[5]: Exit\n");
+        printf("\n%s:\n",     (lang_ == 0) ? "Choose a gamemode please" : "РџРѕР¶Р°Р»СѓР№СЃС‚Р°, РІС‹Р±РµСЂРёС‚Рµ СЂРµР¶РёРј РёРіСЂС‹");
+        printf("\t[1]: %s\n", (lang_ == 0) ? "Guessing a character"     : "РЈРіР°РґР°С‚СЊ РїРµСЂСЃРѕРЅР°Р¶Р°");
+        printf("\t[2]: %s\n", (lang_ == 0) ? "Find a character"         : "РЈРіР°РґР°С‚СЊ РїРµСЂСЃРѕРЅР°Р¶Р°");
+        printf("\t[3]: %s\n", (lang_ == 0) ? "Character comparison"     : "РЎСЂР°РІРЅРµРЅРёРµ РїРµСЂСЃРѕРЅР°Р¶РµР№");
+        printf("\t[4]: %s\n", (lang_ == 0) ? "View the base"            : "РџРѕСЃРјРѕС‚СЂРµС‚СЊ Р±Р°Р·Сѓ РґР°РЅРЅС‹С…");
+        printf("\t[5]: Change language | РЎРјРµРЅРёС‚СЊ СЏР·С‹Рє\n");
+        printf("\t[6]: %s\n", (lang_ == 0) ? "Exit"                     : "Р’С‹С…РѕРґ");
         printf("Enter a number: ");
 
-        int mode = scanNum(1, 5);
+        int mode = scanNum(1, 6);
 
         switch (mode)
         {
@@ -83,6 +84,9 @@ int Akinator::Run ()
             printGraphBase();
             break;
         case 5:
+            lang_ = 1 - lang_;
+            break;
+        case 6:
             running = false;
             break;
         default:
@@ -115,14 +119,14 @@ int Akinator::Guessing ()
         }
         else AKN_ASSERTOK(AKN_INCORRECT_INPUT_SYNTAX_BASE, AKN_INCORRECT_INPUT_SYNTAX_BASE);
 
-        txSpeak ("\v\nВаш персонаж - %s\n", question);
-        printf("Answer [Y/n]? ");
+        printf("\n%s - %s\n",  (lang_ == 0) ? "Your character" : "Р’Р°С€ РїРµСЂСЃРѕРЅР°Р¶", question);
+        printf("%s [Y/n]? ", (lang_ == 0) ? "Answer"            : "РћС‚РІРµС‚");
 
         if (scanAns())
         {
             if (isAns)
             {
-                txSpeak ("\v\nЯ угадал!\n");
+                printf("\n%s!\n", (lang_ == 0) ? "I guessed" : "РЇ СѓРіР°РґР°Р»");
                 return AKN_OK;
             }
             
@@ -132,8 +136,8 @@ int Akinator::Guessing ()
         {
             if (isAns)
             {
-                txSpeak ("\v\nЯ не угадал\n");
-                txSpeak ("\vПожалуйста дополните мою базу правильным ответом\n");
+                printf("\n%s!\n", (lang_ == 0) ? "I didn't guess" : "РЇ РЅРµ СѓРіР°РґР°Р»");
+                printf("%s\n",    (lang_ == 0) ? "Please add the correct answer to my base" : "РџРѕР¶Р°Р»СѓР№СЃС‚Р° РґРѕРїРѕР»РЅРёС‚Рµ РјРѕСЋ Р±Р°Р·Сѓ РїСЂР°РІРёР»СЊРЅС‹Рј РѕС‚РІРµС‚РѕРј");
 
                 addAns(node_cur);
                 return AKN_OK;
@@ -150,18 +154,18 @@ int Akinator::Guessing ()
 
 int Akinator::CharFind ()
 {
-    txSpeak ("\vВведите персонажа, о котором хотите узнать: ");
+    printf("%s: ", (lang_ == 0) ? "Enter the character you want to know about" : "Р’РІРµРґРёС‚Рµ РїРµСЂСЃРѕРЅР°Р¶Р°, Рѕ РєРѕС‚РѕСЂРѕРј С…РѕС‚РёС‚Рµ СѓР·РЅР°С‚СЊ");
     char* charname = scanChar(CHAR_SIGN);
 
     newStack(path, size_t);
     bool found = tree_.findPath(path, charname);
     if (not found)
     {
-        txSpeak ("\vТакой персонаж не найден\n");
+        printf("%s\n", (lang_ == 0) ? "No such character found" : "РўР°РєРѕР№ РїРµСЂСЃРѕРЅР°Р¶ РЅРµ РЅР°Р№РґРµРЅ");
         return AKN_OK;
     }
 
-    txSpeak ("\v%s\b - ", charname + 1);
+    printf("%s\b - ", charname + 1);
     delete [] charname;
 
     for (int i = 0; i < path.getSize() - 1; ++i)
@@ -176,25 +180,25 @@ int Akinator::CharFind ()
 
 int Akinator::CharCmp ()
 {
-    txSpeak ("\vВведите первого персонажа, которого хотите сравнить: ");
+    printf("%s: ", (lang_ == 0) ? "Enter the first character you want to compare" : "Р’РІРµРґРёС‚Рµ РїРµСЂРІРѕРіРѕ РїРµСЂСЃРѕРЅР°Р¶Р°, РєРѕС‚РѕСЂРѕРіРѕ С…РѕС‚РёС‚Рµ СЃСЂР°РІРЅРёС‚СЊ");
     char* char1 = scanChar(CHAR_SIGN);
 
     newStack(path1, size_t);
     bool found = tree_.findPath(path1, char1);
     if (not found)
     {
-        txSpeak ("\vТакой персонаж не найден\n");
+        printf("%s\n", (lang_ == 0) ? "No such character found" : "РўР°РєРѕР№ РїРµСЂСЃРѕРЅР°Р¶ РЅРµ РЅР°Р№РґРµРЅ");
         return AKN_OK;
     }
 
-    txSpeak ("\vВведите второго персонажа, которого хотите сравнить: ");
+    printf("%s: ", (lang_ == 0) ? "Enter the second character you want to compare" : "Р’РІРµРґРёС‚Рµ РІС‚РѕСЂРѕРіРѕ РїРµСЂСЃРѕРЅР°Р¶Р°, РєРѕС‚РѕСЂРѕРіРѕ С…РѕС‚РёС‚Рµ СЃСЂР°РІРЅРёС‚СЊ");
     char* char2 = scanChar(CHAR_SIGN);
 
     newStack(path2, size_t);
     found = tree_.findPath(path2, char2);
     if (not found)
     {
-        txSpeak ("\vТакой персонаж не найден\n");
+        printf("%s\n", (lang_ == 0) ? "No such character found" : "РўР°РєРѕР№ РїРµСЂСЃРѕРЅР°Р¶ РЅРµ РЅР°Р№РґРµРЅ");
         return AKN_OK;
     }
 
@@ -202,10 +206,10 @@ int Akinator::CharCmp ()
     size_t i2 = 0;
 
     if ((Node<char*>*)path1[i1 + 1] != (Node<char*>*)path2[i2 + 1])
-        txSpeak ("\v\n%s\b и %s\b ничем не схожи", char1 + 1, char2 + 1);
+        printf("\n%s\b %s %s\b %s", char1 + 1, (lang_ == 0) ? "and" : "Рё", char2 + 1, (lang_ == 0) ? "are not alike" : "РЅРёС‡РµРј РЅРµ СЃС…РѕР¶Рё");
     else
     {
-        txSpeak ("\v\n%s\b и %s\b схожи тем, что ", char1 + 1, char2 + 1);
+        printf("\n%s\b %s %s\b %s ", char1 + 1, (lang_ == 0) ? "and" : "Рё", char2 + 1, (lang_ == 0) ? "are similar to that" : "СЃС…РѕР¶Рё С‚РµРј, С‡С‚Рѕ");
         while (((Node<char*>*)path1[i1 + 1] == (Node<char*>*)path2[i2 + 1]) && (i1 < path1.getSize() - 1) && (i2 < path2.getSize() - 1))
         {
             printFeature(path1, i1);
@@ -216,13 +220,13 @@ int Akinator::CharCmp ()
     }
     printf("\n");
 
-    txSpeak ("\vно %s\b отличается тем, что ", char1 + 1);
+    printf("%s %s\b %s ", (lang_ == 0) ? "but" : "РЅРѕ", char1 + 1, (lang_ == 0) ? "differs in that" : "РѕС‚Р»РёС‡Р°РµС‚СЃСЏ С‚РµРј, С‡С‚Рѕ");
     for (; i1 < path1.getSize() - 1; ++i1)
         printFeature(path1, i1);
 
     printf(",\n");
 
-    txSpeak ("\va %s\b отличается тем, что ", char2 + 1);
+    printf("%s %s\b %s ", (lang_ == 0) ? "and" : "Р°", char2 + 1, (lang_ == 0) ? "differs in that" : "РѕС‚Р»РёС‡Р°РµС‚СЃСЏ С‚РµРј, С‡С‚Рѕ");
     for (; i2 < path2.getSize() - 1; ++i2)
         printFeature(path2, i2);
 
@@ -249,7 +253,7 @@ int Akinator::scanNum (int start, int end)
 
     while ((endstr[0] != '\n') || (num < start) || (num > end) || !err)
     {
-        printf("Try again: ");
+        printf("%s: ", (lang_ == 0) ? "Try again" : "РџРѕРїСЂРѕР±СѓР№С‚Рµ СЃРЅРѕРІР°");
         err = fgets(str, 18, stdin);
         num = strtol(str, &endstr, 20);
     }
@@ -268,7 +272,7 @@ bool Akinator::scanAns ()
 
     while ((ans[0] != 'Y') && (ans[0] != 'N') || (ans[1] != '\n') || !err)
     {
-        printf("Try again [Y/n]? ");
+        printf("%s [Y/n]? ", (lang_ == 0) ? "Try again" : "РџРѕРїСЂРѕР±СѓР№С‚Рµ СЃРЅРѕРІР°");
         err = fgets(ans, MAX_STR_LEN - 2, stdin);
         ans[0] = toupper(ans[0]);
     }
@@ -283,7 +287,9 @@ char* Akinator::scanChar (char c)
     char* charname = new char [MAX_STR_LEN] {};
     charname[0] = c;
 
-    fgets(charname + 1, MAX_STR_LEN - 2, stdin);
+    char* err = fgets(charname + 1, MAX_STR_LEN - 2, stdin);
+    assert(err);
+
     size_t len = strlen(charname);
     assert(len);
     charname[len - 1] = c;
@@ -296,11 +302,11 @@ char* Akinator::scanChar (char c)
 inline void Akinator::printFeature (const Stack<size_t>& path, size_t item)
 {
     if (((Node<char*>*)path[item])->left_ == (Node<char*>*)path[item + 1])
-        txSpeak ("\vне ");
+        printf("%s ", (lang_ == 0) ? "not" : "РЅРµ");
     else if (((Node<char*>*)path[item])->right_ != (Node<char*>*)path[item + 1])
         assert(0);
 
-    txSpeak ("\v%s\b", ((Node<char*>*)path[item])->getData() + 1);
+    printf("%s\b", ((Node<char*>*)path[item])->getData() + 1);
     if (item != path.getSize() - 2) printf(", ");
 }
 
@@ -310,13 +316,13 @@ int Akinator::addAns (Node<char*>* node_cur)
 {
     assert(node_cur != nullptr);
 
-    txSpeak ("\vВведите вашего персонажа: ");
+    printf("%s: ", (lang_ == 0) ? "Enter your character" : "Р’РІРµРґРёС‚Рµ РІР°С€РµРіРѕ РїРµСЂСЃРѕРЅР°Р¶Р°");
     char* newchar = scanChar(CHAR_SIGN);
 
     newStack(path, size_t);
     if (tree_.findPath(path, newchar))
     {
-        txSpeak ("\vТакой персонаж уже есть: %s\b - ", newchar + 1);
+        printf("%s: %s\b - ", (lang_ == 0) ? "Such a character already exists" : "РўР°РєРѕР№ РїРµСЂСЃРѕРЅР°Р¶ СѓР¶Рµ РµСЃС‚СЊ", newchar + 1);
         for (int i = 0; i < path.getSize() - 1; ++i)
             printFeature(path, i);
         printf(".\n");
@@ -328,7 +334,7 @@ int Akinator::addAns (Node<char*>* node_cur)
     strcpy(oldchar, node_cur->getData() + 1);
     oldchar[strlen(oldchar) - 1] = '\0';
 
-    txSpeak ("\vВведите признак отличающий %s от %s: ", newchar, oldchar);
+    printf("%s %s РѕС‚ %s: ", (lang_ == 0) ? "Enter a characteristic that distinguishes" : "Р’РІРµРґРёС‚Рµ РїСЂРёР·РЅР°Рє РѕС‚Р»РёС‡Р°СЋС‰РёР№", newchar, oldchar);
     char* feature = scanChar(FEAT_SIGN);
 
     Node<char*>* prevNode = node_cur->prev_;
@@ -360,8 +366,8 @@ int Akinator::addAns (Node<char*>* node_cur)
 
     featureNode->recountDepth();
 
-    txSpeak ("\v\nСохранить в базу?\n");
-    printf("Answer [Y/n]? ");
+    printf("\n%s?\n",    (lang_ == 0) ? "Save to the base" : "РЎРѕС…СЂР°РЅРёС‚СЊ РІ Р±Р°Р·Сѓ");
+    printf("%s [Y/n]? ", (lang_ == 0) ? "Answer"           : "РћС‚РІРµС‚");
     if (scanAns())
         tree_.Write(filename_);
 
@@ -437,20 +443,45 @@ void Akinator::printGraphBase (const char* graphname)
 
     char command[128] = "";
 
+#if defined(WIN32)
+
     sprintf(command, "win_iconv -f 1251 -t UTF8 \"%s\" > \"new%s\"", graphname, graphname);
-    system(command);
+
+    int err = system(command);
 
     char* truename = new char[128] {};
     strcpy(truename, graphname);
 
     sprintf(command, "dot -Tpng -o %s.png new%s", GetTrueFileName((char*)truename), graphname);
-    system(command);
+    if (!err) err = system(command);
 
     sprintf(command, "del new%s", graphname);
-    system(command);
+    if (!err) err = system(command);
 
     sprintf(command, "start %s.png", truename);
-    system(command);
+
+#elif defined(__linux__)
+
+    sprintf(command, "iconv -f UTF8 -t UTF8 \"%s\" -o \"new%s\"", graphname, graphname);
+
+    int err = system(command);
+
+    char* truename = new char[128] {};
+    strcpy(truename, graphname);
+
+    sprintf(command, "dot -Tpng -o %s.png new%s", GetTrueFileName((char*)truename), graphname);
+    if (!err) err = system(command);
+
+    sprintf(command, "rm new%s", graphname);
+    if (!err) err = system(command);
+
+    sprintf(command, "eog %s.png", truename);
+
+#else
+#error Program is only supported by linux or windows platforms
+#endif
+
+    if (!err) err = system(command);
 
     delete[] truename;
 }

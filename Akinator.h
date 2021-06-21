@@ -5,7 +5,7 @@
     * Author:      Artem Puzankov                                              *
     * Email:       puzankov.ao@phystech.edu                                    *
     * GitHub:      https://github.com/hellopuza                                *
-    * Copyright © 2021 Artem Puzankov. All rights reserved.                    *
+    * Copyright Â© 2021 Artem Puzankov. All rights reserved.                    *
     *///------------------------------------------------------------------------
 
 #ifndef AKINATOR_H_INCLUDED
@@ -26,16 +26,12 @@
 
 #endif
 
-#define TX_USE_SPEAK
-#include "TXLib.h"
 
 #include "StringLib/StringLib.h"
 #include "StackLib/Stack.h"
 #include "TreeLib/Tree.h"
 
-#include <stdio.h>
 #include <locale.h>
-#include <assert.h>
 
 
 //==============================================================================
@@ -77,15 +73,15 @@ static const char* akn_errstr[] =
 
 static const char* AKINATOR_LOGNAME = "akinator.log";
 
-#define BASE_CHECK if (tree_.Check ())                                                                    \
-                   {                                                                                      \
-                     tree_.Dump();                                                                        \
-                     tree_.PrintError (TREE_LOGNAME , __FILE__, __LINE__, __FUNC_NAME__, tree_.errCode_); \
-                     exit(tree_.errCode_);                                                                \
-                   }                                                                                      \
-                   if (checkBase (tree_.root_))                                                           \
-                   {                                                                                      \
-                     AKN_ASSERTOK(state_, state_);                                                        \
+#define BASE_CHECK if (tree_.Check ())                                                                        \
+                   {                                                                                          \
+                     tree_.Dump();                                                                            \
+                     tree_.PrintError (TREE_LOGNAME , __FILE__, __LINE__, __FUNC_NAME__, tree_.errCode_, -1); \
+                     exit(tree_.errCode_);                                                                    \
+                   }                                                                                          \
+                   if (checkBase (tree_.root_))                                                               \
+                   {                                                                                          \
+                     AKN_ASSERTOK(state_, state_);                                                            \
                    } //
 
 #define AKN_ASSERTOK(cond, err) if (cond)                                                               \
@@ -115,6 +111,7 @@ class Akinator
 private:
 
     int state_;
+    char lang_      = 0; // 0 - eng, 1 - rus
     char* filename_ = (char*)DEFAULT_BASENAME;
 
     Tree<char*> tree_;
@@ -263,6 +260,7 @@ private:
  *
  *  @param   graph       Dump graphviz dot file
  */
+
     void printGraphNode (FILE* graph, Node<char*>* node_cur);
 
 //------------------------------------------------------------------------------
