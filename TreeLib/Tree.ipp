@@ -88,6 +88,8 @@ Tree<TYPE>& Tree<TYPE>::operator = (const Tree& obj)
 {
     TREE_CHECK;
 
+    name_ = obj.name_;
+
     if (obj.root_ != nullptr)
     {
         if (root_ == nullptr) root_ = new Node<TYPE>;
@@ -299,7 +301,7 @@ void Tree<TYPE>::Dump (const char* dumpname)
 
 #elif defined(__linux__)
 
-    sprintf(command, "iconv -f UTF8 -t UTF8 \"%s\" -o \"new%s\"", dumpname, dumpname);
+    sprintf(command, "iconv -f CP1251 -t UTF8 \"%s\" -o \"new%s\"", dumpname, dumpname);
 
 #else
 #error Program is only supported by linux or windows platforms
@@ -527,6 +529,25 @@ int Node<TYPE>::findPath (Stack<size_t>& path, TYPE elem)
     if (not found) path.Pop();
 
     return found;
+}
+
+//------------------------------------------------------------------------------
+
+template<typename TYPE>
+bool isPOISON (Tree<TYPE> tree)
+{
+    return ( (tree.name_    == 0) &&
+             (tree.root_    == 0) &&
+             (tree.id_      == 0) && 
+             (tree.errCode_ == 0) );
+}
+
+//------------------------------------------------------------------------------
+
+template<typename TYPE>
+void TypePrint (FILE* fp, const Tree<TYPE>& tree)
+{
+    fprintf(fp, "%s", tree.name_);
 }
 
 //------------------------------------------------------------------------------

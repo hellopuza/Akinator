@@ -13,10 +13,14 @@
 #define TREE_H_INCLUDED
 
 #define _CRT_SECURE_NO_WARNINGS
-//#define NDEBUG
+
 
 #include "../StringLib/StringLib.h"
+
+#define NO_HASH
 #include "../StackLib/Stack.h"
+#undef NO_HASH
+
 #include "TreeConfig.h"
 #include <type_traits>
 #include <assert.h>
@@ -61,8 +65,16 @@ static int tree_id = 0;
 #define newTree_base(NAME, base, STK_TYPE) \
         Tree<STK_TYPE> NAME ((char*)#NAME, base);
 
+
 template <typename TYPE>
 class Tree;
+
+template<typename TYPE> const char* const PRINT_TYPE<Tree<TYPE>> = "Tree";
+template<typename TYPE> const Tree<TYPE>  POISON    <Tree<TYPE>> = {};
+
+template<typename TYPE> bool isPOISON  (Tree<TYPE> tree);
+template<typename TYPE> void TypePrint (FILE* fp, const Tree<TYPE>& tree);
+
 
 template <typename TYPE>
 struct Node
@@ -193,7 +205,7 @@ class Tree
 {
 public:
 
-    const char* name_ = nullptr;
+    char* name_ = nullptr;
     Node<TYPE>* root_ = nullptr;
 
     int id_ = 0;
