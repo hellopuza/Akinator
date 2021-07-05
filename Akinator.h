@@ -56,7 +56,7 @@ enum AkinatorErrors
     AKN_WRONG_TREE_ONE_CHILD                                           ,
 };
 
-static const char* akn_errstr[] =
+char const * const akn_errstr[] =
 {
     "ERROR"                                                            ,
     "OK"                                                               ,
