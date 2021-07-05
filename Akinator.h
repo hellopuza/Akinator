@@ -71,7 +71,7 @@ static const char* akn_errstr[] =
     "Every node must have 0 or 2 children"                             ,
 };
 
-static const char* AKINATOR_LOGNAME = "akinator.log";
+char const * const AKINATOR_LOGNAME = "akinator.log";
 
 #define BASE_CHECK if (tree_.Check ())                                                                        \
                    {                                                                                          \
@@ -99,8 +99,8 @@ static const char* AKINATOR_LOGNAME = "akinator.log";
 //==============================================================================
 
 
-static const char* GRAPH_FILENAME   = "Base.dot";
-static const char* DEFAULT_BASENAME = "Base.dat";
+char const * const GRAPH_FILENAME   = "Base.dot";
+char const * const DEFAULT_BASENAME = "Base.dat";
 const size_t MAX_STR_LEN = 128;
 
 const char FEAT_SIGN = '?';
