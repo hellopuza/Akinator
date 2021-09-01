@@ -65,7 +65,7 @@ int Akinator::Run ()
         printf("\t[4]: %s\n", (lang_ == 0) ? "View the base"            : "Посмотреть базу данных");
         printf("\t[5]: Change language | Сменить язык\n");
         printf("\t[6]: %s\n", (lang_ == 0) ? "Exit"                     : "Выход");
-        printf("Enter a number: ");
+        printf((lang_ == 0) ? "Enter a number: " : "Введите число: ");
 
         int mode = scanNum(1, 6);
 
@@ -119,8 +119,8 @@ int Akinator::Guessing ()
         }
         else AKN_ASSERTOK(AKN_INCORRECT_INPUT_SYNTAX_BASE, AKN_INCORRECT_INPUT_SYNTAX_BASE);
 
-        printf("\n%s - %s\n",  (lang_ == 0) ? "Your character" : "Ваш персонаж", question);
-        printf("%s [Y/n]? ", (lang_ == 0) ? "Answer"            : "Ответ");
+        printf("\n%s - %s\n", (lang_ == 0) ? "Your character" : "Ваш персонаж", question);
+        printf("%s [Y/n]? ",  (lang_ == 0) ? "Answer"         : "Ответ");
 
         if (scanAns())
         {

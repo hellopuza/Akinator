@@ -73,15 +73,15 @@ char const * const akn_errstr[] =
 
 char const * const AKINATOR_LOGNAME = "akinator.log";
 
-#define BASE_CHECK if (tree_.Check ())                                                                        \
-                   {                                                                                          \
-                     tree_.Dump();                                                                            \
-                     tree_.PrintError (TREE_LOGNAME , __FILE__, __LINE__, __FUNC_NAME__, tree_.errCode_, -1); \
-                     exit(tree_.errCode_);                                                                    \
-                   }                                                                                          \
-                   if (checkBase (tree_.root_))                                                               \
-                   {                                                                                          \
-                     AKN_ASSERTOK(state_, state_);                                                            \
+#define BASE_CHECK if (tree_.Check ())                                                                            \
+                   {                                                                                              \
+                     tree_.Dump();                                                                                \
+                     tree_.PrintError (TREE_LOGNAME , __FILE__, __LINE__, __FUNC_NAME__, tree_.getErrCode(), -1); \
+                     exit(tree_.getErrCode());                                                                    \
+                   }                                                                                              \
+                   if (checkBase (tree_.root_))                                                                   \
+                   {                                                                                              \
+                     AKN_ASSERTOK(state_, state_);                                                                \
                    } //
 
 #define AKN_ASSERTOK(cond, err) if (cond)                                                               \
@@ -277,7 +277,5 @@ private:
 
 //------------------------------------------------------------------------------
 };
-
-//------------------------------------------------------------------------------
 
 #endif // AKINATOR_H_INCLUDED
